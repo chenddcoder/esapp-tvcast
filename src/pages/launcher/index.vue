@@ -35,7 +35,10 @@
                name="recentApp"
                @click="onOpenApp(app)"
                @focus="onFocus">
-            <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false"><span class="glyph">{{ app.glyph }}</span></div>
+            <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false">
+              <img v-if="app.icon && iconSrc[app.pkg]" :src="iconSrc[app.pkg]" class="app-icon-img" :focusable="false" />
+              <span v-else class="glyph">{{ app.glyph }}</span>
+            </div>
             <span class="app-name" :focusable="false">{{ app.name }}</span>
           </div>
         </div>
@@ -51,7 +54,10 @@
                name="allApp"
                @click="onOpenApp(app)"
                @focus="onFocus">
-            <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false"><span class="glyph">{{ app.glyph }}</span></div>
+            <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false">
+              <img v-if="app.icon && iconSrc[app.pkg]" :src="iconSrc[app.pkg]" class="app-icon-img" :focusable="false" />
+              <span v-else class="glyph">{{ app.glyph }}</span>
+            </div>
             <span class="app-name" :focusable="false">{{ app.name }}</span>
           </div>
         </div>
@@ -89,6 +95,7 @@
 import { defineComponent } from 'vue'
 import { useESRouter, useESNativeRouter } from '@extscreen/es3-router'
 import { ref, onMounted, onUnmounted } from 'vue'
+import { getCachedAppIcon, loadAppIcon } from './appIcon'
 
 interface AppItem {
   name: string
@@ -97,6 +104,8 @@ interface AppItem {
   castable: boolean
   /** 个人快应用包名：有值则点击时通过 nativeRouter（EsNativeModule.launchEsPage）拉起该快应用 */
   pkg?: string
+  /** 应用真实图标 URL（SVG）：有值则启动时拉取并缓存，显示前用 glyph 兜底 */
+  icon?: string
 }
 
 export default defineComponent({
@@ -126,7 +135,7 @@ export default defineComponent({
       { name: '文件', glyph: '档', color: '#f7971e', castable: true },
       { name: '游戏', glyph: '戏', color: '#ee0979', castable: true },
       { name: '浏览器', glyph: '浏', color: '#43cea2', castable: false },
-      { name: '天气', glyph: '天', color: '#56ccf2', castable: false, pkg: 'cn.chenddcoder.weather' },
+      { name: '天气', glyph: '天', color: '#56ccf2', castable: false, pkg: 'cn.chenddcoder.weather', icon: 'https://www.chenddcoder.cn/upload/weather-icon.svg' },
       { name: '计算器', glyph: '算', color: '#8e9eab', castable: false },
       { name: '应用商店', glyph: '店', color: '#11998e', castable: false },
       { name: '设置', glyph: '设', color: '#667eea', castable: false },
@@ -165,9 +174,25 @@ export default defineComponent({
     const onSettings = () => router.push({ name: 'settings' })
     const onCast = () => router.push({ name: 'casting', params: { source: '手机' } })
 
+    // 应用真实图标：优先读 localStorage 缓存，无缓存则 fetch 拉取 SVG 并缓存；
+    // 拉取前/失败时模板用 glyph 默认图标兜底，拉取成功后替换为真实图标。
+    const iconSrc = ref<Record<string, string | null>>({})
+
+    const primeAppIcon = async (app: AppItem) => {
+      if (!app.pkg || !app.icon) return
+      const cached = getCachedAppIcon(app.pkg)
+      if (cached) {
+        iconSrc.value[app.pkg] = cached
+        return
+      }
+      const dataUrl = await loadAppIcon(app.pkg, app.icon)
+      if (dataUrl) iconSrc.value[app.pkg] = dataUrl
+    }
+
     onMounted(() => {
       tickClock()
       clockTimer = setInterval(tickClock, 1000 * 20)
+      allApps.value.forEach((app) => primeAppIcon(app))
     })
     onUnmounted(() => {
       clearInterval(clockTimer)
@@ -181,6 +206,7 @@ export default defineComponent({
       toast,
       recent,
       allApps,
+      iconSrc,
       onFocus,
       onOpenApp,
       onMarket,
@@ -385,6 +411,13 @@ export default defineComponent({
   font-size: 46px;
   font-weight: 800;
   color: #fff;
+}
+.app-icon-img {
+  width: 110px;
+  height: 110px;
+  border-radius: 26px;
+  object-fit: cover;
+  display: block;
 }
 .app-card[focused] .app-icon,
 .app-card:focus .app-icon {
