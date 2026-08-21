@@ -30,13 +30,40 @@
     </div>
 
     <div class="toast" v-if="toast" :focusable="false"><span>{{ toast }}</span></div>
+
+    <!-- 改名对话框 -->
+    <div v-if="showDialog" class="dialog-mask" :focusable="false">
+      <div class="dialog" :focusable="false">
+        <div class="dialog-title" :focusable="false">修改设备名称</div>
+        <div class="dialog-hint" :focusable="false">为电视设置一个好记的名字，便于手机端识别</div>
+        <input
+          class="dialog-input"
+          :focusable="true"
+          eventFocus
+          name="renameInput"
+          :value="editingName"
+          placeholder="请输入设备名称"
+          :maxLength="30"
+          @changeText="onNameChangeText"
+        />
+        <div class="dialog-actions" :focusable="false">
+          <div class="dialog-btn" :focusable="true" eventClick eventFocus name="dialogCancel" @click="closeDialog">
+            <span :focusable="false">取消</span>
+          </div>
+          <div class="dialog-btn primary" :focusable="true" eventClick eventFocus name="dialogConfirm" @click="confirmRename">
+            <span :focusable="false">确定</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useESRouter } from '@extscreen/es3-router'
-import { ref, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { Native } from '@extscreen/es3-vue'
 
 interface SettingItem {
   name: string
@@ -53,7 +80,7 @@ export default defineComponent({
     let toastTimer: any = -1
 
     const items = ref<SettingItem[]>([
-      { name: '设备名称', icon: '台', value: '投屏显象·我的电脑' },
+      { name: '设备名称', icon: '台', value: '投屏显象_00.00' },
       { name: '网络', icon: '网', value: 'Wi-Fi · 已连接' },
       { name: '投屏分辨率', icon: '清', value: '1920 × 1080' },
       { name: '自动接收投屏', icon: '接', value: '开启' },
@@ -61,14 +88,76 @@ export default defineComponent({
       { name: '关于', icon: '关', value: 'v1.0.0' },
     ])
 
+    // 改名对话框状态
+    const showDialog = ref(false)
+    const editingName = ref('')
+    const saving = ref(false)
+
+    // 更新「设备名称」一行的显示值
+    const updateDeviceName = (name: string) => {
+      const row = items.value.find((it) => it.name === '设备名称')
+      if (row) row.value = name
+    }
+
     const showToast = (msg: string) => {
       toast.value = msg
       clearTimeout(toastTimer)
       toastTimer = setTimeout(() => (toast.value = ''), 1500)
     }
 
+    // 从 web-runtime 的 ProcessBridgeModule 读取真实 DLNA 广播设备名（Rust 环境
+    // 经 window.__get_invoke() 转调 getDlnaName 命令），读取失败保留默认占位值。
+    const loadDeviceName = async () => {
+      try {
+        const name = await Native.callNativeWithPromise('ProcessBridgeModule', 'getDlnaName')
+        if (name) updateDeviceName(name)
+      } catch (e) {
+        // 读取失败保留默认值
+      }
+    }
+
+    // 打开改名对话框，预填当前设备名称
+    const openRenameDialog = () => {
+      const row = items.value.find((it) => it.name === '设备名称')
+      editingName.value = row ? row.value : ''
+      saving.value = false
+      showDialog.value = true
+    }
+    const closeDialog = () => {
+      if (saving.value) return
+      showDialog.value = false
+    }
+
+    // 输入框内容变化（hippy TextInput 事件，事件对象含 text 字段）
+    const onNameChangeText = (e: { text?: string }) => {
+      if (e && typeof e.text === 'string') editingName.value = e.text
+    }
+
+    // 确定：提交 setDlnaName，成功则更新显示并提示
+    const confirmRename = async () => {
+      const name = editingName.value.trim()
+      if (!name) {
+        showToast('设备名称不能为空')
+        return
+      }
+      if (saving.value) return
+      saving.value = true
+      try {
+        await Native.callNativeWithPromise('ProcessBridgeModule', 'setDlnaName', name)
+        updateDeviceName(name)
+        showDialog.value = false
+        showToast('已保存')
+      } catch (e) {
+        showToast('保存失败，请重试')
+      } finally {
+        saving.value = false
+      }
+    }
+
     const onItem = (item: SettingItem) => {
-      if (item.name === '连接帮助') {
+      if (item.name === '设备名称') {
+        openRenameDialog()
+      } else if (item.name === '连接帮助') {
         router.push({ name: 'guide' })
       } else {
         showToast(`「${item.name}」设置（后续接入）`)
@@ -76,9 +165,23 @@ export default defineComponent({
     }
     const onBack = () => router.push({ name: 'home' })
 
+    onMounted(loadDeviceName)
+
     onUnmounted(() => clearTimeout(toastTimer))
 
-    return { rootRef, toast, items, onItem, onBack }
+    return {
+      rootRef,
+      toast,
+      items,
+      onItem,
+      onBack,
+      showDialog,
+      editingName,
+      saving,
+      onNameChangeText,
+      confirmRename,
+      closeDialog,
+    }
   },
 })
 </script>
@@ -225,5 +328,84 @@ export default defineComponent({
 .toast span {
   font-size: 26px;
   color: #eaf0ff;
+}
+.dialog-mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  background: rgba(5, 8, 18, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog {
+  width: 720px;
+  padding-top: 40px;
+  padding-bottom: 40px;
+  padding-left: 48px;
+  padding-right: 48px;
+  border-radius: 24px;
+  background: #141b2e;
+  border: 1px solid rgba(124, 92, 255, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+.dialog-title {
+  font-size: 34px;
+  font-weight: 800;
+  color: #eaf0ff;
+  margin-bottom: 12px;
+}
+.dialog-hint {
+  font-size: 22px;
+  color: #9fb0d0;
+  margin-bottom: 28px;
+}
+.dialog-input {
+  height: 72px;
+  border-radius: 14px;
+  background: #0d1426;
+  border: 1px solid rgba(124, 92, 255, 0.4);
+  color: #eaf0ff;
+  font-size: 28px;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+.dialog-input[focused],
+.dialog-input:focus {
+  border-color: #7c5cff;
+}
+.dialog-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+.dialog-btn {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  padding-left: 40px;
+  padding-right: 40px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-left: 20px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.dialog-btn[focused],
+.dialog-btn:focus {
+  transform: scale(1.05);
+  background: rgba(124, 92, 255, 0.28);
+}
+.dialog-btn span {
+  font-size: 26px;
+  color: #eaf0ff;
+}
+.dialog-btn.primary {
+  background: linear-gradient(135deg, #7c5cff, #5b8cff);
+}
+.dialog-btn.primary span {
+  color: #fff;
 }
 </style>
