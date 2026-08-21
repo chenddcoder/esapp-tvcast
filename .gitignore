@@ -1,0 +1,45 @@
+.DS_Store
+dist
+node_modules
+
+# local env files
+.env.local
+.env.*.local
+.deploy.env
+.env
+.deploy.env
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json*
+pnpm-debug.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.sh
+
+# QuickTVUI AI Rules
+.quicktvui-ai-backup
+.claude
+.clinerules
+.cursorrules
+.docs
+.github/copilot-instructions.md
+.windsurfrules
+AGENTS.md
+AI_HANDOFF.md
+CLAUDE.md
+GEMINI.md
+.source
+docs/superpowers
+openspec
+pnpm-lock.yaml
+.reasonix
