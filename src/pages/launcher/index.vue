@@ -31,12 +31,13 @@
         <div class="recent-row" :focusable="false">
           <div v-for="(app, i) in recent" :key="'r' + i"
                class="app-card recent"
+               :data-pkg="app.pkg || ''"
                :focusable="true" eventClick eventFocus
                name="recentApp"
                @click="onOpenApp(app)"
                @focus="onFocus">
             <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false">
-              <img v-if="app.icon && iconSrc[app.pkg]" :src="iconSrc[app.pkg]" class="app-icon-img" :focusable="false" />
+              <img v-if="app.icon && !iconFailed[app.pkg]" :src="app.icon" @error="onIconError(app)" class="app-icon-img" :focusable="false" />
               <span v-else class="glyph">{{ app.glyph }}</span>
             </div>
             <span class="app-name" :focusable="false">{{ app.name }}</span>
@@ -50,12 +51,13 @@
         <div class="app-grid" :focusable="false">
           <div v-for="(app, i) in allApps" :key="'a' + i"
                class="app-card grid"
+               :data-pkg="app.pkg || ''"
                :focusable="true" eventClick eventFocus
                name="allApp"
                @click="onOpenApp(app)"
                @focus="onFocus">
             <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false">
-              <img v-if="app.icon && iconSrc[app.pkg]" :src="iconSrc[app.pkg]" class="app-icon-img" :focusable="false" />
+              <img v-if="app.icon && !iconFailed[app.pkg]" :src="app.icon" @error="onIconError(app)" class="app-icon-img" :focusable="false" />
               <span v-else class="glyph">{{ app.glyph }}</span>
             </div>
             <span class="app-name" :focusable="false">{{ app.name }}</span>
@@ -95,7 +97,6 @@
 import { defineComponent } from 'vue'
 import { useESRouter, useESNativeRouter } from '@extscreen/es3-router'
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getCachedAppIcon, loadAppIcon } from './appIcon'
 
 interface AppItem {
   name: string
@@ -104,7 +105,7 @@ interface AppItem {
   castable: boolean
   /** 个人快应用包名：有值则点击时通过 nativeRouter（EsNativeModule.launchEsPage）拉起该快应用 */
   pkg?: string
-  /** 应用真实图标 URL（SVG）：有值则启动时拉取并缓存，显示前用 glyph 兜底 */
+  /** 应用真实图标 URL（SVG）：img 直接加载（web-cli DevProxy 会把跨域 img 改写成 /proxy/... 由 DevServer 转发） */
   icon?: string
 }
 
@@ -174,25 +175,19 @@ export default defineComponent({
     const onSettings = () => router.push({ name: 'settings' })
     const onCast = () => router.push({ name: 'casting', params: { source: '手机' } })
 
-    // 应用真实图标：优先读 localStorage 缓存，无缓存则 fetch 拉取 SVG 并缓存；
-    // 拉取前/失败时模板用 glyph 默认图标兜底，拉取成功后替换为真实图标。
-    const iconSrc = ref<Record<string, string | null>>({})
+    // 应用图标：img 直接加载远程 URL（Hippy Image 支持 http，web-cli DevProxy 会把跨域 img
+    // 改写成 /proxy/... 由 DevServer 转发；浏览器 HTTP 缓存（ETag）兜底）。加载失败 → glyph。
+    // 注意：不能用 data: URL（Hippy Image 会置空 src），也不能 fetch 预取后切 data URL
+    // （会把正在加载的远程请求取消 → DevTools 显示「已取消」→ 图标空白）。
+    const iconFailed = ref<Record<string, boolean>>({})
 
-    const primeAppIcon = async (app: AppItem) => {
-      if (!app.pkg || !app.icon) return
-      const cached = getCachedAppIcon(app.pkg)
-      if (cached) {
-        iconSrc.value[app.pkg] = cached
-        return
-      }
-      const dataUrl = await loadAppIcon(app.pkg, app.icon)
-      if (dataUrl) iconSrc.value[app.pkg] = dataUrl
+    const onIconError = (app: AppItem) => {
+      iconFailed.value[app.pkg || ''] = true
     }
 
     onMounted(() => {
       tickClock()
       clockTimer = setInterval(tickClock, 1000 * 20)
-      allApps.value.forEach((app) => primeAppIcon(app))
     })
     onUnmounted(() => {
       clearInterval(clockTimer)
@@ -206,7 +201,8 @@ export default defineComponent({
       toast,
       recent,
       allApps,
-      iconSrc,
+      onIconError,
+      iconFailed,
       onFocus,
       onOpenApp,
       onMarket,
