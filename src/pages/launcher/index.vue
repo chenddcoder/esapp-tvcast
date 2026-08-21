@@ -96,6 +96,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useESRouter, useESNativeRouter } from '@extscreen/es3-router'
+import { Native } from '@extscreen/es3-vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 
 interface AppItem {
@@ -115,7 +116,7 @@ export default defineComponent({
     const router = useESRouter()
     const nativeRouter = useESNativeRouter()
     const rootRef = ref()
-    const deviceName = ref('投屏显象·我的电脑')
+    const deviceName = ref('投屏显象_00.00')
     const clock = ref('')
     const toast = ref('')
     let toastTimer: any = -1
@@ -185,9 +186,21 @@ export default defineComponent({
       iconFailed.value[app.pkg || ''] = true
     }
 
+    // 从 web-runtime 的 ProcessBridgeModule 读取真实 DLNA 广播设备名（Rust 环境经
+    // window.__get_invoke() 转调 desktop-runtime 的 getDlnaName 命令），读取失败保留默认值。
+    const loadDeviceName = async () => {
+      try {
+        const name = await Native.callNativeWithPromise('ProcessBridgeModule', 'getDlnaName')
+        if (name) deviceName.value = name
+      } catch (e) {
+        // 读取失败保留默认值
+      }
+    }
+
     onMounted(() => {
       tickClock()
       clockTimer = setInterval(tickClock, 1000 * 20)
+      loadDeviceName()
     })
     onUnmounted(() => {
       clearInterval(clockTimer)
