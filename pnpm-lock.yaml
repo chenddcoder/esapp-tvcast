@@ -21,41 +21,41 @@ importers:
   .:
     dependencies:
       '@extscreen/es3-ad-player':
-        specifier: 1.0.9
-        version: 1.0.9
+        specifier: 1.0.13
+        version: 1.0.13
       '@extscreen/es3-audio-player2':
         specifier: 0.2.30
         version: 0.2.30
       '@extscreen/es3-component':
-        specifier: 1.0.37-beta.2
-        version: 1.0.37-beta.2
+        specifier: 3.0.0
+        version: 3.0.0
       '@extscreen/es3-core':
-        specifier: 1.2.5-1
-        version: 1.2.5-1
+        specifier: 3.0.0
+        version: 3.0.0
       '@extscreen/es3-device-info':
         specifier: 0.0.6
         version: 0.0.6
       '@extscreen/es3-player':
-        specifier: 1.1.3
-        version: 1.1.3
+        specifier: 3.0.0
+        version: 3.0.0
       '@extscreen/es3-player-manager':
-        specifier: 1.0.58
-        version: 1.0.58
+        specifier: 3.0.2
+        version: 3.0.2
       '@extscreen/es3-router':
-        specifier: 1.2.0
-        version: 1.2.0(vue@3.5.33(typescript@5.6.3))
+        specifier: 3.0.1
+        version: 3.0.1(vue@3.5.33(typescript@5.6.3))
       '@extscreen/es3-video-player':
+        specifier: 3.0.2
+        version: 3.0.2
+      '@extscreen/es3-vue':
         specifier: 3.0.1
         version: 3.0.1
-      '@extscreen/es3-vue':
-        specifier: 0.0.14
-        version: 0.0.14
       '@extscreen/es3-vue-style-parser':
-        specifier: 0.0.8
-        version: 0.0.8
+        specifier: 3.0.0
+        version: 3.0.0
       '@quicktvui/quicktvui3':
-        specifier: 1.2.0-beta.65
-        version: 1.2.0-beta.65(@extscreen/es3-core@1.2.5-1)(@extscreen/es3-router@1.2.0(vue@3.5.33(typescript@5.6.3)))
+        specifier: 3.0.8
+        version: 3.0.8(vue@3.5.33(typescript@5.6.3))
       core-js:
         specifier: ^3.8.3
         version: 3.50.0
@@ -124,8 +124,8 @@ importers:
         specifier: 0.0.6
         version: 0.0.6(@types/express@4.17.25)(request@2.88.2)(webpack@5.94.0)
       '@extscreen/es3-dynamic-import-plugin':
-        specifier: ^0.0.5
-        version: 0.0.5
+        specifier: 1.0.0
+        version: 1.0.0
       '@hippy/hippy-hmr-plugin':
         specifier: ^0.1.0
         version: 0.1.1(webpack@5.94.0)
@@ -1155,17 +1155,23 @@ packages:
     resolution: {integrity: sha512-ZAoA40rNMPwSm+AeHpCq8STiNAwzWLJuP8Xv4CHIc9wv/PSuExjMrmjfYNj682vW0OOiZ1HKxzvjQr9XZIisQA==, tarball: https://registry.npmjs.org/@eslint/plugin-kit/-/plugin-kit-0.2.8.tgz}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@extscreen/es3-ad-player@1.0.9':
-    resolution: {integrity: sha512-8+n6MwzeDGi9x6/bdK5A2YWpbU4mkQoUnjxTaJr12B5An/pskD7qFsaompYhnHiai9zXGmiExZkiw8FxUGm5zw==, tarball: https://registry.npmjs.org/@extscreen/es3-ad-player/-/es3-ad-player-1.0.9.tgz}
+  '@extscreen/es3-ad-player@1.0.13':
+    resolution: {integrity: sha512-xBkimJU1Erjo+H09sVz2WpfCcIj3qkmTBZc2rqGHThzEobO57EaV6y/nwM2STyDDaTSRq2nKh+qTnhOQPJXpYg==, tarball: https://registry.npmjs.org/@extscreen/es3-ad-player/-/es3-ad-player-1.0.13.tgz}
 
   '@extscreen/es3-audio-player2@0.2.30':
     resolution: {integrity: sha512-ALKFPkAaGgGJ7RqFxrvqNkaQuuseX8bISArHpCeCA0D5XovtGs7A1eFsepBhGc39TpoJJ0mdjJHVPd5XJVlPXw==, tarball: https://registry.npmjs.org/@extscreen/es3-audio-player2/-/es3-audio-player2-0.2.30.tgz}
 
-  '@extscreen/es3-component@1.0.37-beta.2':
-    resolution: {integrity: sha512-yYoEBy6m5rNCNACcp7hZNj5VMnyDs/m9TJ9eO40RjryaVYJfY1TsV8QdUZDW23qmH6NTdgpN0P9fxnQNUIlJCg==, tarball: https://registry.npmjs.org/@extscreen/es3-component/-/es3-component-1.0.37-beta.2.tgz}
+  '@extscreen/es3-audio-player@3.0.1':
+    resolution: {integrity: sha512-aPi0C7+jb5wZXN+aKvnagXZeJ6JLEsbr5xPbZWTUyIDQ+60VthtdneDyRei/JZe1eSDOYxCvBTOYP11cP3qfOg==, tarball: https://registry.npmjs.org/@extscreen/es3-audio-player/-/es3-audio-player-3.0.1.tgz}
 
-  '@extscreen/es3-core@1.2.5-1':
-    resolution: {integrity: sha512-/j76vfIQQBOt2pwmRmGgO8DPSXKkv0+FXDLtiq541u1eCaThtrQktJcokRiG8zy6zNjQ65QNE2f97C8cqo56/w==, tarball: https://registry.npmjs.org/@extscreen/es3-core/-/es3-core-1.2.5-1.tgz}
+  '@extscreen/es3-audio-service-player@3.0.0':
+    resolution: {integrity: sha512-c6h25wx8VtgQiyGuKIrcEaN4wfoVVLoKAuW5QRscj74pvsKUdAbVtZhz9ah1omGn2RdCtbAtIrOXJZxrLc4ZYw==, tarball: https://registry.npmjs.org/@extscreen/es3-audio-service-player/-/es3-audio-service-player-3.0.0.tgz}
+
+  '@extscreen/es3-component@3.0.0':
+    resolution: {integrity: sha512-PToRAUbSZB1DP7RRG2zSe4tWE20PhUJIQnYm9H/gI6uwR5dr2qUMpSWnB2EmmBmhLT4XfU7dhGQ7fAsIty6PWw==, tarball: https://registry.npmjs.org/@extscreen/es3-component/-/es3-component-3.0.0.tgz}
+
+  '@extscreen/es3-core@3.0.0':
+    resolution: {integrity: sha512-msHRCku7Unwic+lG5bX7IvVo6brLYCM4ouBCK+QGtctk0DRmotrxgyJhAtdr3sM5HlZkVrLw8lrGpE9SS5mA5A==, tarball: https://registry.npmjs.org/@extscreen/es3-core/-/es3-core-3.0.0.tgz}
 
   '@extscreen/es3-debug-server@0.0.6':
     resolution: {integrity: sha512-NKGcbLrBKl0mo+Z4gcRoP3Qnr1w1vwzu9MJfw2hjXK8MDzwWg9NaacNPBXqAZ13AErzcvvW0TiHsDc8BsWDIyg==, tarball: https://registry.npmjs.org/@extscreen/es3-debug-server/-/es3-debug-server-0.0.6.tgz}
@@ -1175,28 +1181,31 @@ packages:
   '@extscreen/es3-device-info@0.0.6':
     resolution: {integrity: sha512-Xlma8QhhvYRbSr2L+RH5Zkd161beWKee/ERpPVV+tUbi2iLVenGfRt5wFAeI847QrkGEkDp9gQHrXYrSzqRWTQ==, tarball: https://registry.npmjs.org/@extscreen/es3-device-info/-/es3-device-info-0.0.6.tgz}
 
-  '@extscreen/es3-dynamic-import-plugin@0.0.5':
-    resolution: {integrity: sha512-tMG0Nrdo8Nmc5X51sfRmDfE9gw4MFH7Lu9rCT+J7w9DmS8OwFdiQ9XkYV1SyCKo50fJhCQPmtrDa9A8IAA22Yw==, tarball: https://registry.npmjs.org/@extscreen/es3-dynamic-import-plugin/-/es3-dynamic-import-plugin-0.0.5.tgz}
+  '@extscreen/es3-dynamic-import-plugin@1.0.0':
+    resolution: {integrity: sha512-7dK5dpD8ceIXqAHhdLTo2tD/G7SSD281gtLkzbpj2Fr+Qo8AYIfdbvaBYwSJAwbOcT9jJo2HJq9kf4PPSmr9Dg==, tarball: https://registry.npmjs.org/@extscreen/es3-dynamic-import-plugin/-/es3-dynamic-import-plugin-1.0.0.tgz}
 
-  '@extscreen/es3-player-manager@1.0.58':
-    resolution: {integrity: sha512-RTOcRF1CeYz6o9S+0V1S1NNsf8oXUu0EJJHjygJ7phCBWT3OqRB6F7/bm4sPidjnGKvEniVIUWIhNA1GDjdZrQ==, tarball: https://registry.npmjs.org/@extscreen/es3-player-manager/-/es3-player-manager-1.0.58.tgz}
+  '@extscreen/es3-player-manager@3.0.2':
+    resolution: {integrity: sha512-QxaOPEIHIjeKd2Jzs5GyRmcX4SpuoLjDc8ivUX3mq/l+vq/fNGCpNkKP4gw5eg5QhAIn1k2lMSaLv+hUij6i6A==, tarball: https://registry.npmjs.org/@extscreen/es3-player-manager/-/es3-player-manager-3.0.2.tgz}
 
-  '@extscreen/es3-player@1.1.3':
-    resolution: {integrity: sha512-xnhnKE368/prFuZcdTJ19Y5JyC3Z6Qm7Gg28q6kMpXKyQsTe217+G40CrTKCDolzXp1AWg3WpywtVdxbpxuPbg==, tarball: https://registry.npmjs.org/@extscreen/es3-player/-/es3-player-1.1.3.tgz}
+  '@extscreen/es3-player@3.0.0':
+    resolution: {integrity: sha512-cdkMm2Zuz+oiyqOw8w2C+vJfg+Ze5CcPLCg2sA+w9IuqJeC253uO0eBcdVKRtAtHMlYwNdRe68mH5swQVd1qUA==, tarball: https://registry.npmjs.org/@extscreen/es3-player/-/es3-player-3.0.0.tgz}
 
-  '@extscreen/es3-router@1.2.0':
-    resolution: {integrity: sha512-sSjpX02gVufaeeTBVV2s5c2YK6rug89hh1nMBY5XKhw1flSkJ8roZHgrXAOgtfllwwU/00nNoubSAEzC1Bs/tQ==, tarball: https://registry.npmjs.org/@extscreen/es3-router/-/es3-router-1.2.0.tgz}
+  '@extscreen/es3-router@3.0.1':
+    resolution: {integrity: sha512-LTFOzfOGSrz9d2y/s2QL1ymzyr5kvXOdOK2I8yZGgVTg0vE8Ibnnvek4ZerL8MAXrWCpq9HoJYMBXW5ufvii4w==, tarball: https://registry.npmjs.org/@extscreen/es3-router/-/es3-router-3.0.1.tgz}
     peerDependencies:
       vue: ^3.3.0
 
-  '@extscreen/es3-video-player@3.0.1':
-    resolution: {integrity: sha512-6t4zKAxhAXopgCctSsgvVN+jCTsrVXYHYVZ066/Vk5+wJGrO66slZa1WGOFI+RgLDnfH00DqZwXGsOUGrKbdZQ==, tarball: https://registry.npmjs.org/@extscreen/es3-video-player/-/es3-video-player-3.0.1.tgz}
+  '@extscreen/es3-soundpool-player@3.0.2':
+    resolution: {integrity: sha512-zr9AAunqOBTid2wgka2gy1Qj5RrDKGX867ZTxuvUsXS1QCZ8vViUkiwxzC7vT0ta6/uD9cCUVlACuZIqOoKr9Q==, tarball: https://registry.npmjs.org/@extscreen/es3-soundpool-player/-/es3-soundpool-player-3.0.2.tgz}
 
-  '@extscreen/es3-vue-style-parser@0.0.8':
-    resolution: {integrity: sha512-01Z8CUVVSHlzWnXE0VdeCd+aKB6uxJoTedDLP0ucPHcOmuHtMN06WJQHN42qZBsSYFlKdyN6MWeB7tJkffLcWw==, tarball: https://registry.npmjs.org/@extscreen/es3-vue-style-parser/-/es3-vue-style-parser-0.0.8.tgz}
+  '@extscreen/es3-video-player@3.0.2':
+    resolution: {integrity: sha512-owm4H7+9ozsjC9UN3Iwxr/KqJp75pxM9xFQWacU1YEUBxLZuslkXohweFQCDYxj3jdfNzJjoWEYze2X2WvzWmg==, tarball: https://registry.npmjs.org/@extscreen/es3-video-player/-/es3-video-player-3.0.2.tgz}
 
-  '@extscreen/es3-vue@0.0.14':
-    resolution: {integrity: sha512-lVILwCOCoIyVGYSbiKuYhNrNKoGFurfxDSojhx10NWBCD1HsSBfbh31DAFcGXY6G9OEk5cVLZ+TdrFQarxZ0Jg==, tarball: https://registry.npmjs.org/@extscreen/es3-vue/-/es3-vue-0.0.14.tgz}
+  '@extscreen/es3-vue-style-parser@3.0.0':
+    resolution: {integrity: sha512-2u7NbtBKEktrDCw45cZjkfVdvUHcBaJkC6Zp8OCNaG9LARik0A/dElYL8MUsA/pVOTCxM11nsGx5kAxl4mbNlg==, tarball: https://registry.npmjs.org/@extscreen/es3-vue-style-parser/-/es3-vue-style-parser-3.0.0.tgz}
+
+  '@extscreen/es3-vue@3.0.1':
+    resolution: {integrity: sha512-wFKv2YUsLQafR9cUR568qM9XhbIStoMLG3akBc3xpy+4SkzZa79vjPENthq8Xo49hldWWI5J6OPBxl1gtyIM4w==, tarball: https://registry.npmjs.org/@extscreen/es3-vue/-/es3-vue-3.0.1.tgz}
 
   '@hapi/bourne@3.0.0':
     resolution: {integrity: sha512-Waj1cwPXJDucOib4a3bAISsKJVb15MKi9IvmTI/7ssVEm6sywXGjVJDhl6/umt1pK1ZS7PacXU3A1PmFKHEZ2w==, tarball: https://registry.npmjs.org/@hapi/bourne/-/bourne-3.0.0.tgz}
@@ -1438,11 +1447,8 @@ packages:
   '@quicktvui/ai@1.1.22':
     resolution: {integrity: sha512-BiiIu3aHKuekbOCUviTxMPP66AwToi+oAQjkUupCMFqOQtTTdBTt34YjXndWcvzUtKqv+yPfPWO6GBzfgQhEJA==, tarball: https://registry.npmjs.org/@quicktvui/ai/-/ai-1.1.22.tgz}
 
-  '@quicktvui/quicktvui3@1.2.0-beta.65':
-    resolution: {integrity: sha512-UTzGj+0ycKYEwCXmYT6uQ/VnIhiaYTcIoJ4vW42ybmyU0r3pWXvZK+wZqp/r7KcpmqkvXLTyuAejPgir6lMFJg==, tarball: https://registry.npmjs.org/@quicktvui/quicktvui3/-/quicktvui3-1.2.0-beta.65.tgz}
-    peerDependencies:
-      '@extscreen/es3-core': ^1.1.24
-      '@extscreen/es3-router': ^1.1.14
+  '@quicktvui/quicktvui3@3.0.8':
+    resolution: {integrity: sha512-xflyWXPf5z9KXgx4XJMdG+LgXenA55MoK681jgfWMAMHy6KZHNJ0FjuZbqsCHTXBX6unKBMq/opGmYfYqf49gQ==, tarball: https://registry.npmjs.org/@quicktvui/quicktvui3/-/quicktvui3-3.0.8.tgz}
 
   '@sideway/address@4.1.5':
     resolution: {integrity: sha512-IqO/DUQHUkPeixNQ8n0JA6102hT9CmaljNTPmQ1u8MEhBo/R4Q8eKLN/vGZxuebwOroDB4cbpjheD4+/sKFK4Q==, tarball: https://registry.npmjs.org/@sideway/address/-/address-4.1.5.tgz}
@@ -6977,13 +6983,17 @@ snapshots:
       '@eslint/core': 0.13.0
       levn: 0.4.1
 
-  '@extscreen/es3-ad-player@1.0.9': {}
+  '@extscreen/es3-ad-player@1.0.13': {}
 
   '@extscreen/es3-audio-player2@0.2.30': {}
 
-  '@extscreen/es3-component@1.0.37-beta.2': {}
+  '@extscreen/es3-audio-player@3.0.1': {}
 
-  '@extscreen/es3-core@1.2.5-1': {}
+  '@extscreen/es3-audio-service-player@3.0.0': {}
+
+  '@extscreen/es3-component@3.0.0': {}
+
+  '@extscreen/es3-core@3.0.0': {}
 
   '@extscreen/es3-debug-server@0.0.6(@types/express@4.17.25)(request@2.88.2)(webpack@5.94.0)':
     dependencies:
@@ -7051,27 +7061,26 @@ snapshots:
 
   '@extscreen/es3-device-info@0.0.6': {}
 
-  '@extscreen/es3-dynamic-import-plugin@0.0.5': {}
+  '@extscreen/es3-dynamic-import-plugin@1.0.0': {}
 
-  '@extscreen/es3-player-manager@1.0.58': {}
+  '@extscreen/es3-player-manager@3.0.2': {}
 
-  '@extscreen/es3-player@1.1.3': {}
+  '@extscreen/es3-player@3.0.0': {}
 
-  '@extscreen/es3-router@1.2.0(vue@3.5.33(typescript@5.6.3))':
+  '@extscreen/es3-router@3.0.1(vue@3.5.33(typescript@5.6.3))':
     dependencies:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.33(typescript@5.6.3)
 
-  '@extscreen/es3-video-player@3.0.1': {}
+  '@extscreen/es3-soundpool-player@3.0.2': {}
 
-  '@extscreen/es3-vue-style-parser@0.0.8':
+  '@extscreen/es3-video-player@3.0.2': {}
+
+  '@extscreen/es3-vue-style-parser@3.0.0':
     dependencies:
       '@vue/shared': 3.5.33
 
-  '@extscreen/es3-vue@0.0.14':
-    dependencies:
-      '@vue/runtime-core': 3.5.33
-      '@vue/shared': 3.5.33
+  '@extscreen/es3-vue@3.0.1': {}
 
   '@hapi/bourne@3.0.0': {}
 
@@ -7297,10 +7306,21 @@ snapshots:
 
   '@quicktvui/ai@1.1.22': {}
 
-  '@quicktvui/quicktvui3@1.2.0-beta.65(@extscreen/es3-core@1.2.5-1)(@extscreen/es3-router@1.2.0(vue@3.5.33(typescript@5.6.3)))':
+  '@quicktvui/quicktvui3@3.0.8(vue@3.5.33(typescript@5.6.3))':
     dependencies:
-      '@extscreen/es3-core': 1.2.5-1
-      '@extscreen/es3-router': 1.2.0(vue@3.5.33(typescript@5.6.3))
+      '@extscreen/es3-audio-player': 3.0.1
+      '@extscreen/es3-audio-service-player': 3.0.0
+      '@extscreen/es3-component': 3.0.0
+      '@extscreen/es3-core': 3.0.0
+      '@extscreen/es3-player': 3.0.0
+      '@extscreen/es3-player-manager': 3.0.2
+      '@extscreen/es3-router': 3.0.1(vue@3.5.33(typescript@5.6.3))
+      '@extscreen/es3-soundpool-player': 3.0.2
+      '@extscreen/es3-video-player': 3.0.2
+      '@extscreen/es3-vue': 3.0.1
+      '@extscreen/es3-vue-style-parser': 3.0.0
+    transitivePeerDependencies:
+      - vue
 
   '@sideway/address@4.1.5':
     dependencies:
