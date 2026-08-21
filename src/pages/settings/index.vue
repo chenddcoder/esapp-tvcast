@@ -155,11 +155,22 @@ export default defineComponent({
       if (saving.value) return
       saving.value = true
       try {
-        await Native.callNativeWithPromise('ProcessBridgeModule', 'setDlnaName', name)
-        updateDeviceName(name)
-        showDialog.value = false
-        showToast('已保存')
+        // 返回值判定成功：setDlnaName 底层失败时正常返回 false，不会抛异常，
+        // 故成功与否要以返回值 boolean 为准
+        const ok = await Native.callNativeWithPromise(
+          'ProcessBridgeModule',
+          'setDlnaName',
+          name
+        )
+        if (ok) {
+          updateDeviceName(name)
+          showDialog.value = false
+          showToast('已保存')
+        } else {
+          showToast('保存失败，请重试')
+        }
       } catch (e) {
+        // 桥接调用抛异常同样视为失败
         showToast('保存失败，请重试')
       } finally {
         saving.value = false
