@@ -37,6 +37,7 @@
         <div class="dialog-title" :focusable="false">修改设备名称</div>
         <div class="dialog-hint" :focusable="false">为电视设置一个好记的名字，便于手机端识别</div>
         <input
+          ref="renameInputRef"
           class="dialog-input"
           :focusable="true"
           eventFocus
@@ -62,8 +63,9 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { useESRouter } from '@extscreen/es3-router'
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Native } from '@extscreen/es3-vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { Native, onKeyUp } from '@extscreen/es3-vue'
+import { ESKeyCode } from '@extscreen/es3-core'
 
 interface SettingItem {
   name: string
@@ -76,6 +78,7 @@ export default defineComponent({
   setup() {
     const router = useESRouter()
     const rootRef = ref()
+    const renameInputRef = ref()
     const toast = ref('')
     let toastTimer: any = -1
 
@@ -116,21 +119,30 @@ export default defineComponent({
       }
     }
 
-    // 打开改名对话框，预填当前设备名称
+    // 打开改名对话框，预填当前设备名称，并把焦点引导到输入框
     const openRenameDialog = () => {
       const row = items.value.find((it) => it.name === '设备名称')
       editingName.value = row ? row.value : ''
       saving.value = false
       showDialog.value = true
+      // 浮层渲染完成后再聚焦输入框，便于遥控器/键盘直接开始输入
+      nextTick(() => {
+        ;(renameInputRef.value as any)?.focus?.()
+      })
     }
     const closeDialog = () => {
       if (saving.value) return
       showDialog.value = false
     }
 
-    // 输入框内容变化（hippy TextInput 事件，事件对象含 text 字段）
-    const onNameChangeText = (e: { text?: string }) => {
-      if (e && typeof e.text === 'string') editingName.value = e.text
+    // 输入框内容变化（hippy TextInput 事件）。回调首参形态不固定——可能直接把新值字符串作为
+    // 首个参数传入，也可能是事件对象（新值在 value / nativeEvent.text / text 字段），故做多形态解析，
+    // 确保任何形态下都能把用户输入同步到 editingName
+    const onNameChangeText = (e: unknown) => {
+      const obj = (e || {}) as Record<string, any>
+      const text =
+        typeof e === 'string' ? e : obj.nativeEvent?.text ?? obj.value ?? obj.text
+      if (typeof text === 'string') editingName.value = text
     }
 
     // 确定：提交 setDlnaName，成功则更新显示并提示
@@ -165,12 +177,26 @@ export default defineComponent({
     }
     const onBack = () => router.push({ name: 'home' })
 
-    onMounted(loadDeviceName)
+    onMounted(() => {
+      loadDeviceName()
+      // 键盘返回键（遥控器返回 / ESC）关闭改名对话框；仅对话框打开时生效，
+      // 对话框未打开时不做处理，避免干扰正常返回逻辑（es3 生命周期钩子在组件卸载时自动清理）
+      onKeyUp((event) => {
+        if (!showDialog.value) return
+        if (
+          event.keyCode === ESKeyCode.ES_KEYCODE_BACK ||
+          event.keyCode === ESKeyCode.ES_KEYCODE_ESCAPE
+        ) {
+          closeDialog()
+        }
+      })
+    })
 
     onUnmounted(() => clearTimeout(toastTimer))
 
     return {
       rootRef,
+      renameInputRef,
       toast,
       items,
       onItem,
