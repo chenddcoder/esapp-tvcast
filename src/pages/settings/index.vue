@@ -45,7 +45,7 @@
           :value="editingName"
           placeholder="请输入设备名称"
           :maxLength="30"
-          @changeText="onNameChangeText"
+          @change="onNameChangeText"
         />
         <div class="dialog-actions" :focusable="false">
           <div class="dialog-btn" :focusable="true" eventClick eventFocus name="dialogCancel" @click="closeDialog">
