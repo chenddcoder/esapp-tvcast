@@ -456,6 +456,38 @@ export default defineComponent({
     const onStop = () => stopAndExit()
     const onBackHome = () => stopAndExit()
 
+    // ---------- 下键：通知抖音进度到头，触发自动切下一集 ----------
+    // 原理：抖音连续剧投屏靠轮询 GetPositionInfo 判断"当前集播完"
+    //（RelTime >= TrackDuration 阈值）→ 自动 SetAVTransportURI 下一集 + Play。
+    // TV 端按下键时，把 position 上报为总时长，抖音下次轮询即判定播完 → 换集。
+    let lastForceComplete = 0
+    const forceComplete = () => {
+      const dur = curDuration.value // 毫秒
+      if (dur <= 0) return
+      const now = Date.now()
+      if (now - lastForceComplete < 1500) return // 防抖：抖音轮询周期 ~1s
+      lastForceComplete = now
+      // 锁定进度同步：停掉真实进度上报，避免下一轮 position 覆盖"到头"值
+      // 造成抖音判定竞态（刚判定播完又被真实进度拉回）。
+      // 抖音 SetAVTransportURI 换集后 position 重置 0，播放新集时
+      // onPlayerPlaying 会重新 startProgressTimer。
+      stopProgressTimer()
+      curProgress.value = dur
+      progressPercent.value = 100
+      progressText.value = fmtTime(dur)
+      sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: dur })
+      console.log('[casting] 下键 → 上报进度到头 position=', dur)
+    }
+
+    /** 真机 TV 遥控器按键（页面实例模式由框架回调）：DPAD_DOWN=20 / 键盘 ArrowDown=40 */
+    const onKeyDown = (keyCode: number, ..._rest: unknown[]) => {
+      if (keyCode === 20 || keyCode === 40) {
+        forceComplete()
+        return true
+      }
+      return false
+    }
+
     /**
      * 返回键（es3-router dispatchBackPressed 会优先调用页面实例的 onBackPressed）：
      * 投屏中按返回 = 断开投屏：停播 + 上报 stop + 收起播放层。
@@ -474,6 +506,7 @@ export default defineComponent({
     // ---------- 生命周期 ----------
     let removeActionListener: (() => void) | null = null
     let removeControlListener: (() => void) | null = null
+    let removeKeyHandler: (() => void) | null = null
 
     const initPlaySource = () => {
       // 覆盖层模式：props.url 优先
@@ -522,11 +555,24 @@ export default defineComponent({
         onPause: onDlnaPause,
         onStop: onDlnaStop,
       })
+      // web/desktop：覆盖层模式下无页面实例回调，直接监听 window keydown
+      //（真机 TV 遥控器由页面实例 onKeyDown 路径处理）
+      if (typeof window !== 'undefined') {
+        const onKey = (e: KeyboardEvent) => {
+          if (e.key === 'ArrowDown' || e.keyCode === 40 || e.keyCode === 20) {
+            e.preventDefault()
+            forceComplete()
+          }
+        }
+        window.addEventListener('keydown', onKey)
+        removeKeyHandler = () => window.removeEventListener('keydown', onKey)
+      }
     })
 
     onUnmounted(() => {
       if (removeActionListener) removeActionListener()
       if (removeControlListener) removeControlListener()
+      if (removeKeyHandler) removeKeyHandler()
       clearTimeout(stopDelayTimer)
       stopProgressTimer()
     })
@@ -559,6 +605,7 @@ export default defineComponent({
       onToggleMute,
       onStop,
       onBackHome,
+      onKeyDown,
       onBackPressed,
       onESStop,
     }
