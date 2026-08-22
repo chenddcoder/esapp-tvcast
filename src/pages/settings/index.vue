@@ -135,13 +135,16 @@ export default defineComponent({
       showDialog.value = false
     }
 
-    // 输入框内容变化（hippy TextInput 事件）。回调首参形态不固定——可能直接把新值字符串作为
-    // 首个参数传入，也可能是事件对象（新值在 value / nativeEvent.text / text 字段），故做多形态解析，
-    // 确保任何形态下都能把用户输入同步到 editingName
+    // 输入框内容变化（hippy TextInput 事件）。es3-vue 3.x 的事件对象结构为
+    // {type, nativeParams:{text, nativeEvent}, ...}——新值在 nativeParams.text，
+    // 不在顶层。老框架（es-vue2）与部分形态可能直接传字符串或顶层 value/text，
+    // 故做多形态解析兜底，确保任何形态下都能把用户输入同步到 editingName
     const onNameChangeText = (e: unknown) => {
       const obj = (e || {}) as Record<string, any>
       const text =
-        typeof e === 'string' ? e : obj.nativeEvent?.text ?? obj.value ?? obj.text
+        typeof e === 'string'
+          ? e
+          : obj.nativeParams?.text ?? obj.nativeEvent?.text ?? obj.value ?? obj.text
       if (typeof text === 'string') editingName.value = text
     }
 
