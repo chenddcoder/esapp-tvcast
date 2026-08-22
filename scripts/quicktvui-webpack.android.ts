@@ -38,8 +38,8 @@ module.exports = {
           compress: {
             warnings: false,
             drop_debugger: true,
-            drop_console: true,
-            pure_funcs: ['console.log']
+            drop_console: false,
+            
           }
         },
         extractComments: false
@@ -81,12 +81,12 @@ module.exports = {
     new CaseSensitivePathsPlugin(),
     new VueLoaderPlugin(),
     new ESDynamicImportPlugin(),
-    new WebpackObfuscator(
+    /* new WebpackObfuscator(
       {
         rotateStringArray: true
       },
       ['']
-    ),
+    ),*/
   ],
   module: {
     rules: [
