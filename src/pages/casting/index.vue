@@ -552,8 +552,7 @@ export default defineComponent({
     // TV 端按下键时，把 position 上报为总时长，抖音下次轮询即判定播完 → 换集。
     let lastForceComplete = 0
     const forceComplete = () => {
-      const dur = curDuration.value // 毫秒
-      if (dur <= 0) return
+      const dur = curDuration.value // 毫秒（可能为 0：切集后新集时长未就绪）
       const now = Date.now()
       if (now - lastForceComplete < 1500) return // 防抖：抖音轮询周期 ~1s
       lastForceComplete = now
@@ -562,11 +561,19 @@ export default defineComponent({
       // 抖音 SetAVTransportURI 换集后 position 重置 0，播放新集时
       // onPlayerPlaying 会重新 startProgressTimer。
       stopProgressTimer()
-      curProgress.value = dur
-      progressPercent.value = 100
-      progressText.value = fmtTime(dur)
-      sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: dur })
-      console.log('[casting] 下键 → 上报进度到头 position=', dur)
+      if (dur > 0) {
+        curProgress.value = dur
+        progressPercent.value = 100
+        progressText.value = fmtTime(dur)
+      }
+      // 发强制完成信号（不再直接上报 position=duration）：
+      // 抖音客户端有"先确认在播（进度>1s）再接受播完"的判断——Rust 侧在
+      // GetPositionInfo 响应时渐进处理：上次回报 <1s 先给 2s 过渡值确认在播，
+      // 下次轮询再返回总时长；上次 ≥1s 直接返回总时长 → 客户端判定播完切集。
+      // 上层（前端）感知不到客户端轮询节奏，直接跳变会被忽略。
+      // dur<=0（切集后时长未就绪）也照发：Rust 侧 dur>0 才渐进处理，无害。
+      sendRemoteEvent(DLNA_REMOTE_EVENT.FORCE_COMPLETE, {})
+      console.log('[casting] 下键 → 发 force_complete（Rust 渐进导向总时长）')
     }
 
     /** 真机 TV 遥控器按键（页面实例模式由框架回调）：DPAD_DOWN=20 / 键盘 ArrowDown=40 */

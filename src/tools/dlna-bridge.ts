@@ -28,6 +28,13 @@ export const DLNA_REMOTE_EVENT = {
   POSITION: 'position',
   DURATION: 'duration',
   NEXT: 'next',
+  /**
+   * 强制完成信号（TV 下键/手动切集）：Rust 侧在 GetPositionInfo 响应时做
+   * 渐进处理——客户端上次回报 <1s 先给 >1s 过渡值确认在播，下次轮询再返回
+   * 总时长；上次 ≥1s 直接返回总时长。不再由前端直接上报 position=duration
+   *（上层感知不到客户端轮询节奏，直接跳变会被抖音"未确认在播"逻辑忽略）。
+   */
+  FORCE_COMPLETE: 'force_complete',
   /** 快应用 DLNA 就绪信号：desktop overlay 收到后补发缓存的投屏请求 */
   READY: 'tvcast_ready',
 } as const
