@@ -27,14 +27,14 @@ export const DLNA_REMOTE_EVENT = {
   STOP: 'stop',
   POSITION: 'position',
   DURATION: 'duration',
-  NEXT: 'next',
   /**
-   * 强制完成信号（TV 下键/手动切集）：Rust 侧在 GetPositionInfo 响应时做
-   * 渐进处理——客户端上次回报 <1s 先给 >1s 过渡值确认在播，下次轮询再返回
-   * 总时长；上次 ≥1s 直接返回总时长。不再由前端直接上报 position=duration
-   *（上层感知不到客户端轮询节奏，直接跳变会被抖音"未确认在播"逻辑忽略）。
+   * TV 下键/手动切集（复用 xiaoyoucast next 契约，不新增事件名）：
+   * Rust 侧在 GetPositionInfo 响应时做渐进处理——客户端上次回报 <1s 先给
+   * >1s 过渡值确认在播，之后持续返回总时长（不能只返回一次——下一轮回退
+   * 到真实进度会被抖音判定"进度倒退"而不切集），直到客户端 SetAVTransportURI
+   * 换集或 20s 超时兜底。
    */
-  FORCE_COMPLETE: 'force_complete',
+  NEXT: 'next',
   /** 快应用 DLNA 就绪信号：desktop overlay 收到后补发缓存的投屏请求 */
   READY: 'tvcast_ready',
 } as const

@@ -194,6 +194,8 @@ export default defineComponent({
       loading.value = true
       errorText.value = ''
       isStopped = false
+      // 换集/重播：重置进度基准（applyProgress 倒退保护不误伤新集从 0 起播）
+      curProgress.value = -1
       const manager = playerManagerRef.value
       if (!manager) return
       try {
@@ -214,40 +216,25 @@ export default defineComponent({
     let progressTimer: any = -1
 
     /**
-     * 读取播放进度/时长（毫秒）。
-     * 优先直接读 <video> 元素的 currentTime/duration —— web 端最可靠（实测稳定
-     * 递增）；ESPlayerManager.getCurrentPosition() 内部 Me()（播放器实例获取）在
-     * HLS 缓冲/playing 事件频繁触发时会间歇返回 null → undefined → 0，导致
-     * position 上报出现"0 与真实值交替"，0 会把 AvTransport pos 反复重置为 0，
-     * 客户端（Android 抖音）轮询大概率撞上 0 → 进度条恒 0 不更新。
-     * video 元素拿不到/值无效（NaN/Infinity/未就绪 0）时才回退 manager API，
-     * 全部无效则 duration 保持已有值（切集后新流未就绪不闪 0）。
+     * 读取播放进度/时长（毫秒）——纯快应用契约（ESPlayerManager API），
+     * 不使用 document/window 等浏览器对象（快应用真机 Hippy 环境无这些对象）。
+     * 进度轮询走 manager.getCurrentPosition()/getDuration()：ESPlayerManager
+     * 内部 Me()（播放器实例获取）在 playing 事件触发瞬间可能返回 null →
+     * undefined → 0，因此**不要在 playing 事件里立即上报 position**（偶发 0
+     * 会把 AvTransport pos 重置，客户端进度条恒 0）；定时器轮询（播放状态
+     * 稳定后）实测返回真实值，稳定可靠。
      */
     const readProgress = (): { pos: number; dur: number } => {
       let pos = -1
       let dur = -1
-      try {
-        if (typeof document !== 'undefined') {
-          const v = document.querySelector('.casting-root video') || document.querySelector('video')
-          if (v) {
-            const rawPos = v.currentTime
-            if (isFinite(rawPos) && rawPos >= 0) pos = Math.floor(rawPos * 1000)
-            // duration 未就绪（NaN/Infinity/0）不算有效值 → 交给下方兜底，
-            // 避免把 0/Infinity 上报成"总时长 0"（客户端 TrackDuration 变 0）。
-            const rawDur = v.duration
-            if (isFinite(rawDur) && rawDur > 0) dur = Math.floor(rawDur * 1000)
-          }
-        }
-      } catch (e) {}
       const manager = playerManagerRef.value
-      if (pos < 0 && manager) {
+      if (manager) {
         try {
-          pos = Number(manager.getCurrentPosition()) || 0
+          const p = Number(manager.getCurrentPosition())
+          if (isFinite(p) && p >= 0) pos = p
         } catch (e) {}
-      }
-      if (dur < 0 && manager) {
         try {
-          const d = Number(manager.getDuration()) || 0
+          const d = Number(manager.getDuration())
           if (isFinite(d) && d > 0) dur = d
         } catch (e) {}
       }
@@ -268,11 +255,19 @@ export default defineComponent({
         durationText.value = fmtTime(dur)
         sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: dur })
       }
+      // position 上报：进度倒退保护 —— ESPlayerManager 内部 Me()（播放器实例
+      // 获取）间歇返回 null 时 getCurrentPosition() 会假 0（进度突然归 0/倒退），
+      // 若上报会把 AvTransport pos 重置，客户端（抖音）进度条倒退/停 0。
+      // 正常播放进度只前进；seek/换集由 onDlnaSeek/initPlay 重置 curProgress，
+      // 倒退保护不会误伤（seek 后 curProgress 已是新值、换集置 -1）。
       if (pos >= 0 && pos !== curProgress.value) {
-        curProgress.value = pos
-        progressText.value = fmtTime(pos)
-        if (dur > 0) progressPercent.value = Math.min(100, (pos / dur) * 100)
-        sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: pos })
+        const regress = curProgress.value > 0 && pos < curProgress.value - 500
+        if (!regress) {
+          curProgress.value = pos
+          progressText.value = fmtTime(pos)
+          if (dur > 0) progressPercent.value = Math.min(100, (pos / dur) * 100)
+          sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: pos })
+        }
       }
     }
 
@@ -330,15 +325,23 @@ export default defineComponent({
       playing.value = true
       loading.value = false
       sendRemoteEvent(DLNA_REMOTE_EVENT.PLAY, {})
-      // 立即上报一次当前进度（不等 1s 定时器）：播放刚开始 currentTime 可能
-      // 已 >0（缓冲后起播），立即上报让客户端尽快看到非零 RelTime —— 避免
-      // 客户端（Android 抖音）在"进度持续为 0"时误判设备未播放、进度条不更新。
-      // 用 readProgress()（读 video 元素）而非 manager.getCurrentPosition()：
-      // Me() 在 playing 事件频繁触发时可能返回 null → 0 → 把 AvTransport pos
-      // 重置为 0，客户端进度恒 0。applyProgress 同步更新 UI（durationText 总时长
-      // 不被定时器 `!==` 判断跳过而卡 00:00）。
-      const { dur, pos } = readProgress()
-      applyProgress(dur, pos)
+      // 立即上报 duration（getDuration 稳定，让客户端尽快有 TrackDuration）。
+      // ⚠️ 不在 playing 事件里立即上报 position：ESPlayerManager 内部 Me()
+      // 在 playing 触发瞬间可能返回 null → 0，偶发假 0 会把 AvTransport pos
+      // 重置、客户端进度条恒 0。position 由定时器轮询上报（播放状态稳定后
+      // 返回真实值）；Rust 侧 RelTime 毫秒小数（00:00:00.226）也能让客户端
+      // 在 <1s 时就看到非零进度，无需立即上报。
+      const manager = playerManagerRef.value
+      if (manager) {
+        try {
+          const d = Number(manager.getDuration())
+          if (isFinite(d) && d > 0 && d !== curDuration.value) {
+            curDuration.value = d
+            durationText.value = fmtTime(d)
+            sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: d })
+          }
+        } catch (e) {}
+      }
       // 进度同步定时器（对齐 xiaoyoucast dlna-play 的 startProgressTimer）：
       // 主动轮询 getCurrentPosition/getDuration 上报，不依赖 callback 时序
       //（web 端 ESPlayerManager 的 setProgressCallback 可能在播放器组件
@@ -566,14 +569,13 @@ export default defineComponent({
         progressPercent.value = 100
         progressText.value = fmtTime(dur)
       }
-      // 发强制完成信号（不再直接上报 position=duration）：
-      // 抖音客户端有"先确认在播（进度>1s）再接受播完"的判断——Rust 侧在
-      // GetPositionInfo 响应时渐进处理：上次回报 <1s 先给 2s 过渡值确认在播，
-      // 下次轮询再返回总时长；上次 ≥1s 直接返回总时长 → 客户端判定播完切集。
-      // 上层（前端）感知不到客户端轮询节奏，直接跳变会被忽略。
-      // dur<=0（切集后时长未就绪）也照发：Rust 侧 dur>0 才渐进处理，无害。
-      sendRemoteEvent(DLNA_REMOTE_EVENT.FORCE_COMPLETE, {})
-      console.log('[casting] 下键 → 发 force_complete（Rust 渐进导向总时长）')
+      // 发 next 事件（复用 xiaoyoucast 契约，不新增事件名）——Rust 侧在
+      // GetPositionInfo 响应时渐进处理：客户端上次回报 <1s 先给 2s 过渡值
+      // 确认在播，之后持续返回总时长（不能只返回一次——下一轮回退到真实
+      // 进度会被抖音判定"进度倒退"而不切集），直到抖音 SetAVTransportURI
+      // 换集或 20s 超时兜底。上层（前端）感知不到客户端轮询节奏。
+      sendRemoteEvent(DLNA_REMOTE_EVENT.NEXT, {})
+      console.log('[casting] 下键 → 发 next（Rust 渐进持续导向总时长）')
     }
 
     /** 真机 TV 遥控器按键（页面实例模式由框架回调）：DPAD_DOWN=20 / 键盘 ArrowDown=40 */
