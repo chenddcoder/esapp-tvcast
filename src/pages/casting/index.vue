@@ -150,7 +150,7 @@ export default defineComponent({
     const muted = ref(false)
     const loading = ref(true)
     const errorText = ref('')
-    const curProgress = ref(0) // 毫秒
+    const curProgress = ref(-1) // 毫秒；初始 -1 保证首轮 pos=0 也上报（链路从 0 即有数据流）
     const curDuration = ref(0) // 毫秒
     const lastPositionReport = ref(0) // 上次 position 上报时间戳（节流）
     let cUrl = ''
@@ -213,26 +213,98 @@ export default defineComponent({
     // ---------- 进度同步定时器（xiaoyoucast startProgressTimer 同款） ----------
     let progressTimer: any = -1
 
+    /**
+     * 读取播放进度/时长（毫秒）。
+     * 优先直接读 <video> 元素的 currentTime/duration —— web 端最可靠（实测稳定
+     * 递增）；ESPlayerManager.getCurrentPosition() 内部 Me()（播放器实例获取）在
+     * HLS 缓冲/playing 事件频繁触发时会间歇返回 null → undefined → 0，导致
+     * position 上报出现"0 与真实值交替"，0 会把 AvTransport pos 反复重置为 0，
+     * 客户端（Android 抖音）轮询大概率撞上 0 → 进度条恒 0 不更新。
+     * video 元素拿不到/值无效（NaN/Infinity/未就绪 0）时才回退 manager API，
+     * 全部无效则 duration 保持已有值（切集后新流未就绪不闪 0）。
+     */
+    const readProgress = (): { pos: number; dur: number } => {
+      let pos = -1
+      let dur = -1
+      try {
+        if (typeof document !== 'undefined') {
+          const v = document.querySelector('.casting-root video') || document.querySelector('video')
+          if (v) {
+            const rawPos = v.currentTime
+            if (isFinite(rawPos) && rawPos >= 0) pos = Math.floor(rawPos * 1000)
+            // duration 未就绪（NaN/Infinity/0）不算有效值 → 交给下方兜底，
+            // 避免把 0/Infinity 上报成"总时长 0"（客户端 TrackDuration 变 0）。
+            const rawDur = v.duration
+            if (isFinite(rawDur) && rawDur > 0) dur = Math.floor(rawDur * 1000)
+          }
+        }
+      } catch (e) {}
+      const manager = playerManagerRef.value
+      if (pos < 0 && manager) {
+        try {
+          pos = Number(manager.getCurrentPosition()) || 0
+        } catch (e) {}
+      }
+      if (dur < 0 && manager) {
+        try {
+          const d = Number(manager.getDuration()) || 0
+          if (isFinite(d) && d > 0) dur = d
+        } catch (e) {}
+      }
+      // 全部无效（新流未就绪/流式 Infinity）：duration 保持已有值，不闪 0
+      if (dur <= 0 && curDuration.value > 0) dur = curDuration.value
+      return { pos: pos < 0 ? 0 : pos, dur: dur < 0 ? 0 : dur }
+    }
+
+    /**
+     * 统一应用进度到 UI（progressText/durationText/progressPercent）并上报 DLNA。
+     * 定时器与 onPlayerPlaying 立即上报共用 —— 两边必须都更新 UI：
+     * 否则一边先抢占 curDuration/curProgress，另一边 `!==` 判断不再成立，
+     * UI 文本（尤其 durationText 总时长）会永远卡在初始 00:00。
+     */
+    const applyProgress = (dur: number, pos: number) => {
+      if (dur > 0 && dur !== curDuration.value) {
+        curDuration.value = dur
+        durationText.value = fmtTime(dur)
+        sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: dur })
+      }
+      if (pos >= 0 && pos !== curProgress.value) {
+        curProgress.value = pos
+        progressText.value = fmtTime(pos)
+        if (dur > 0) progressPercent.value = Math.min(100, (pos / dur) * 100)
+        sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: pos })
+      }
+    }
+
     const startProgressTimer = () => {
       clearInterval(progressTimer)
+      // 播完兜底状态（每次重启定时器即重置，重播/换集不受影响）
+      let stallTick = 0
+      let endNotified = false
       progressTimer = setInterval(() => {
-        const manager = playerManagerRef.value
-        if (!manager) return
         try {
-          const dur = Number(manager.getDuration()) || 0
-          const pos = Number(manager.getCurrentPosition()) || 0
-          if (dur > 0) {
-            if (dur !== curDuration.value) {
-              curDuration.value = dur
-              durationText.value = fmtTime(dur)
-              sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: dur })
+          const { dur, pos } = readProgress()
+          applyProgress(dur, pos)
+          // 播完兜底（不依赖 video ended 事件）：
+          // 部分 mp4（抖音 ott_cast 投屏 URL）在 HTML5 video 播到末尾不触发
+          // ended → onPlayerCompleted 不执行 → 不上报"超过时长"的 position →
+          // 客户端判定未播完 → 不切集、进度停末尾。
+          // 判定：pos 到达 dur-500ms 内连续 2 tick 即视为播完（不要求停滞——
+          //   HLS/seek 时 currentTime 末尾抖动幅度可达数百 ms，停滞检测会被
+          //   抖动重置；只要 pos 稳定在末尾区域内即可）。
+          // 暂停场景由 onPlayerPaused 停定时器兜住，不会误判。
+          // 触发后【停止定时器锁死进度】：AvTransport pos 稳定保持 dur+1000，
+          // 客户端多轮轮询稳定看到 RelTime>TrackDuration → 必然判定播完切集。
+          if (dur > 0 && pos >= dur - 500) {
+            stallTick++
+            if (stallTick >= 2 && !endNotified) {
+              endNotified = true
+              console.log('[casting] 播完兜底 → 锁进度并上报 position=', dur + 1000)
+              sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: dur + 1000 })
+              stopProgressTimer()
             }
-            if (pos >= 0 && pos !== curProgress.value) {
-              curProgress.value = pos
-              progressText.value = fmtTime(pos)
-              progressPercent.value = Math.min(100, (pos / dur) * 100)
-              sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: pos })
-            }
+          } else {
+            stallTick = 0
           }
         } catch (e) {}
       }, 1000)
@@ -258,6 +330,15 @@ export default defineComponent({
       playing.value = true
       loading.value = false
       sendRemoteEvent(DLNA_REMOTE_EVENT.PLAY, {})
+      // 立即上报一次当前进度（不等 1s 定时器）：播放刚开始 currentTime 可能
+      // 已 >0（缓冲后起播），立即上报让客户端尽快看到非零 RelTime —— 避免
+      // 客户端（Android 抖音）在"进度持续为 0"时误判设备未播放、进度条不更新。
+      // 用 readProgress()（读 video 元素）而非 manager.getCurrentPosition()：
+      // Me() 在 playing 事件频繁触发时可能返回 null → 0 → 把 AvTransport pos
+      // 重置为 0，客户端进度恒 0。applyProgress 同步更新 UI（durationText 总时长
+      // 不被定时器 `!==` 判断跳过而卡 00:00）。
+      const { dur, pos } = readProgress()
+      applyProgress(dur, pos)
       // 进度同步定时器（对齐 xiaoyoucast dlna-play 的 startProgressTimer）：
       // 主动轮询 getCurrentPosition/getDuration 上报，不依赖 callback 时序
       //（web 端 ESPlayerManager 的 setProgressCallback 可能在播放器组件
@@ -268,6 +349,11 @@ export default defineComponent({
     const onPlayerPaused = () => {
       console.log('[casting] onPlayerPaused')
       playing.value = false
+      // 暂停即停止进度上报：避免 pos 停滞在末尾时误触发播完兜底；
+      // 恢复播放时 onPlayerPlaying → startProgressTimer 重启（lastPos/stallTick 全新）。
+      // 同时上报 pause 让客户端 GetTransportInfo 显示 PAUSED_PLAYBACK。
+      stopProgressTimer()
+      sendRemoteEvent(DLNA_REMOTE_EVENT.PAUSE, {})
     }
 
     const onPlayerStopped = () => {
@@ -357,6 +443,10 @@ export default defineComponent({
       // 新投屏：重播
       if (payload.title) title.value = payload.title
       initPlay(url)
+      // 切集/重播后显式启动进度定时器（不依赖 onPlayerPlaying 是否触发）：
+      // 播完兜底锁死定时器后切集，若播放器未重新派发 playing 事件，定时器
+      // 不会自动重启 → AvTransport pos 停留在 0 → 客户端进度条不更新。
+      startProgressTimer()
     }
 
     const onDlnaSeek = (positionSeconds: number) => {
