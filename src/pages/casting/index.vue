@@ -1,5 +1,11 @@
 <template>
-  <div class="casting-root" :focusable="false" ref="rootRef">
+  <!-- 全屏覆盖层（App 根级组件，非路由页面）：
+       控制条按钮与进度条均为 focusable（对齐真机 Hippy 焦点契约，web-renderer
+       按 Android 焦点树语义收集覆盖层内焦点元素）；进度条 autofocus 获得初始
+       焦点（对齐 xiaoyoucast：seekbar 聚焦后左右键=快进快退、OK=播放/暂停）。
+       左右/OK/下键在捕获阶段拦截（等价于真机 onKeyDown 返回 true 阻断框架），
+       防止焦点系统把按键移动/点击到底层页面元素。 -->
+  <div class="casting-root" ref="rootRef" :focusable="false">
     <!-- 投屏播放层：ESPlayerManager 管理 ESVideoPlayer（web 端 = HTML5 video） -->
     <ESPlayerManager
       ref="playerManagerRef"
@@ -38,31 +44,43 @@
       <span class="res-text" :focusable="false">{{ source }}</span>
     </div>
 
-    <!-- 底部控制条 -->
+    <!-- 底部控制条：进度条用标准 qt-seek-bar 组件（quicktvui3，真机契约，
+         渲染 TVSeekBarViewComponent；web-renderer 由 QtSeekBar.js 模拟）。
+         遥控器交互对齐 xiaoyoucast：seekbar 初始聚焦 → 左右键长按快进/快退
+         （组件 startSeek 逐步进 + 系统 keydown 自动重复）、OK=播放/暂停、
+         下键=抖音切集、返回/Esc=断开。按钮仅鼠标/触屏使用（不参与遥控焦点）。 -->
     <div class="control-bar" v-if="!errorText" :focusable="false">
-      <div class="ctrl-btn" :focusable="true" eventClick eventFocus name="play" @click="onTogglePlay">
+      <div class="ctrl-btn" :focusable="false" eventClick name="play" @click="onTogglePlay">
         <span class="ctrl-icon" :focusable="false">{{ playing ? '❚❚' : '▶' }}</span>
         <span class="ctrl-label" :focusable="false">{{ playing ? '暂停' : '播放' }}</span>
       </div>
-      <div class="ctrl-btn" :focusable="true" eventClick eventFocus name="mute" @click="onToggleMute">
+      <div class="ctrl-btn" :focusable="false" eventClick name="mute" @click="onToggleMute">
         <span class="ctrl-icon" :focusable="false">{{ muted ? '🔇' : '🔊' }}</span>
         <span class="ctrl-label" :focusable="false">{{ muted ? '取消静音' : '静音' }}</span>
       </div>
 
-      <!-- 进度：当前 / 总时长 -->
-      <div class="progress-wrap" :focusable="false">
-        <div class="progress-track" :focusable="false">
-          <div class="progress-fill" :focusable="false" :style="{ width: progressPercent + '%' }"></div>
-        </div>
-        <span class="progress-time" :focusable="false">{{ progressText }} / {{ durationText }}</span>
+      <!-- 进度条（seekbar 焦点目标，遥控器左右键快进/快退、OK 播放/暂停） -->
+      <div class="seekbar-wrap" :focusable="false">
+        <qt-seek-bar
+          ref="seekBarRef"
+          class="seek-bar"
+          name="seekbar"
+          eventFocus
+          :focusable="true"
+          @onSeekStart="onSeekStart"
+          @onSeekStop="onSeekStop"
+          @onSeekChanged="onSeekChanged"
+          @onFocusChanged="onSeekbarFocusChanged"
+        />
+        <span class="seek-time-text" :focusable="false">{{ progressText }} / {{ durationText }}</span>
       </div>
 
       <div class="ctrl-spacer" :focusable="false"></div>
-      <div class="ctrl-btn stop" :focusable="true" eventClick eventFocus name="stop" @click="onStop">
+      <div class="ctrl-btn stop" :focusable="false" eventClick name="stop" @click="onStop">
         <span class="ctrl-icon" :focusable="false">⏹</span>
         <span class="ctrl-label" :focusable="false">断开</span>
       </div>
-      <div class="ctrl-btn home" :focusable="true" eventClick eventFocus name="home" @click="onBackHome">
+      <div class="ctrl-btn home" :focusable="false" eventClick name="home" @click="onBackHome">
         <span class="ctrl-icon" :focusable="false">⌂</span>
         <span class="ctrl-label" :focusable="false">返回主页</span>
       </div>
@@ -71,11 +89,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, markRaw, ref, watch, onMounted, onUnmounted } from 'vue'
+import { defineComponent, markRaw, ref, onMounted, onUnmounted } from 'vue'
 import { useESRouter, useESRoute } from '@extscreen/es3-router'
 import { ESPlayerWindowType, ESPlayerPlayMode, ESPlayerRate } from '@extscreen/es3-player'
 import { ESMediaItemList, ESMediaItem } from '@extscreen/es3-player-manager'
 import { ESVideoPlayer } from '@extscreen/es3-video-player'
+import { QTSeekBarMode, QTISeekBar } from '@quicktvui/quicktvui3'
 import {
   sendRemoteEvent,
   DLNA_REMOTE_EVENT,
@@ -120,19 +139,19 @@ export default defineComponent({
     return false
   },
   setup(props, { emit }) {
-    // 覆盖层模式（App.vue v-if 直接渲染，非路由页实例）下 useESRoute/useESRouter
-    // 可能没有注入上下文而抛错，必须容错：路由仅作为兜底（真机路由页模式）。
+    // 路由页面模式：参数经 useESRoute（route.params）与 onESCreate 注入。
+    // 兼容 props 直传（覆盖层遗留用法，未来可移除）。
     let router: { back?: () => void; push?: (x: unknown) => unknown } | null = null
     let route: { params?: Record<string, unknown> } | null = null
     try {
       router = useESRouter() as unknown as { back?: () => void; push?: (x: unknown) => unknown }
     } catch (e) {
-      console.warn('[casting] useESRouter unavailable（覆盖层模式）:', e)
+      console.warn('[casting] useESRouter unavailable:', e)
     }
     try {
       route = useESRoute() as unknown as { params?: Record<string, unknown> }
     } catch (e) {
-      console.warn('[casting] useESRoute unavailable（覆盖层模式）:', e)
+      console.warn('[casting] useESRoute unavailable:', e)
     }
     const rootRef = ref()
     const playerManagerRef = ref<any>()
@@ -156,6 +175,41 @@ export default defineComponent({
     let cUrl = ''
     let isStopped = false
     let stopDelayTimer: any = -1
+
+    // ---------- 快进/快退 seek（qt-seek-bar 组件契约，对齐 xiaoyoucast） ----------
+    // 交互：seekbar 聚焦后，左右键调组件 startSeek(forward)（组件内部每次调用
+    // 步进 maxProgress*1%*加速系数，长按靠系统 keydown 自动重复连续步进），
+    // 松手 keyup → stopSeek → 组件 emit onSeekStop(progress) → 真正 seekTo。
+    // 组件 step 时经 callUIFunction setProgress 实时更新进度条 UI。
+    const seeking = ref(false) // 是否处于 seek 态（onSeekStart→onSeekStop）
+    const seekBarFocused = ref(false) // seekbar 是否聚焦（onFocusChanged 更新）
+    let wasPlayingBeforeSeek = false // seek 前是否在播放（seek 结束恢复播放依据）
+    let seekResumeTimer: any = -1 // seek 结束恢复播放延迟定时器（用户手动操作可取消）
+
+    const seekBarRef = ref<QTISeekBar>()
+
+    /** 初始化 seekbar（对齐 xiaoyoucast initSeekBar） */
+    const initSeekBar = () => {
+      const sb = seekBarRef.value
+      if (!sb) return
+      try {
+        sb.setSeekBarMode(QTSeekBarMode.QT_SEEK_BAR_MODE_SINGLE)
+        sb.setProgressHeight(12)
+        sb.setProgressRadius(6)
+        sb.setProgressColor('#7c5cff')
+        sb.setProgressDefaultColor('rgba(255,255,255,0.18)')
+        sb.setThumbWidth(40)
+        sb.setThumbHeight(40)
+        // 聚焦后把遥控焦点落在进度条上（真机/桌面一致：左右键=快进快退、OK=播放暂停）
+        setTimeout(() => {
+          try {
+            sb.requestFocus()
+          } catch (e) {}
+        }, 200)
+      } catch (e) {
+        console.warn('[casting] initSeekBar error:', e)
+      }
+    }
 
     const fmtTime = (ms: number): string => {
       const s = Math.max(0, Math.floor(ms / 1000))
@@ -243,6 +297,25 @@ export default defineComponent({
       return { pos: pos < 0 ? 0 : pos, dur: dur < 0 ? 0 : dur }
     }
 
+    /** 同步进度条组件（时长/进度；seek 模式组件自管，不打扰） */
+    const syncSeekBarMax = (dur: number) => {
+      const sb = seekBarRef.value
+      if (sb && typeof sb.setMaxProgress === 'function' && dur > 0) {
+        try {
+          sb.setMaxProgress(dur)
+        } catch (e) {}
+      }
+    }
+    const syncSeekBarProgress = (pos: number) => {
+      if (seeking.value) return // seek 模式组件内部管理进度
+      const sb = seekBarRef.value
+      if (sb && typeof sb.setProgress === 'function' && pos >= 0) {
+        try {
+          sb.setProgress(pos)
+        } catch (e) {}
+      }
+    }
+
     /**
      * 统一应用进度到 UI（progressText/durationText/progressPercent）并上报 DLNA。
      * 定时器与 onPlayerPlaying 立即上报共用 —— 两边必须都更新 UI：
@@ -253,6 +326,7 @@ export default defineComponent({
       if (dur > 0 && dur !== curDuration.value) {
         curDuration.value = dur
         durationText.value = fmtTime(dur)
+        syncSeekBarMax(dur)
         sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: dur })
       }
       // position 上报：进度倒退保护 —— ESPlayerManager 内部 Me()（播放器实例
@@ -266,6 +340,7 @@ export default defineComponent({
           curProgress.value = pos
           progressText.value = fmtTime(pos)
           if (dur > 0) progressPercent.value = Math.min(100, (pos / dur) * 100)
+          syncSeekBarProgress(pos)
           sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: pos })
         }
       }
@@ -348,6 +423,7 @@ export default defineComponent({
           if (isFinite(d) && d > 0 && d !== curDuration.value) {
             curDuration.value = d
             durationText.value = fmtTime(d)
+            syncSeekBarMax(d)
             sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: d })
           }
         } catch (e) {}
@@ -378,6 +454,14 @@ export default defineComponent({
       progressPercent.value = 0
       progressText.value = '00:00'
       durationText.value = '00:00'
+      // 进度条复位
+      const sb = seekBarRef.value
+      if (sb) {
+        try {
+          if (typeof sb.setMaxProgress === 'function') sb.setMaxProgress(0)
+          if (typeof sb.setProgress === 'function') sb.setProgress(0)
+        } catch (e) {}
+      }
     }
 
     const onPlayerDurationChanged = (d: number) => {
@@ -385,16 +469,21 @@ export default defineComponent({
       if (d > 0) {
         curDuration.value = d
         durationText.value = fmtTime(d)
+        syncSeekBarMax(d)
         sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: d })
       }
     }
 
     const onPlayerProgressChanged = (p: number) => {
+      // seek 预览中：进度条/时间由组件 seek 目标驱动，真实进度回调不覆盖 UI、
+      // 不上报（暂停态一般无 timeupdate，防御性保护）
+      if (seeking.value) return
       curProgress.value = p
       progressText.value = fmtTime(p)
       if (curDuration.value > 0) {
         progressPercent.value = Math.min(100, (p / curDuration.value) * 100)
       }
+      syncSeekBarProgress(p)
       // 节流：position 最多 1s 上报一次（web 端 timeupdate 约 250ms 一次）
       const now = Date.now()
       if (curDuration.value > 0 && now - lastPositionReport.value >= 1000) {
@@ -406,6 +495,7 @@ export default defineComponent({
     const onPlayerCompleted = () => {
       console.log('[casting] onPlayerCompleted')
       playing.value = false
+      clearSeekState()
       // 进度播到末尾：position 上报 duration+1000（与 xiaoyoucast 一致），随后 stop
       if (curDuration.value > 0) {
         sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: curDuration.value + 1000 })
@@ -420,6 +510,7 @@ export default defineComponent({
       console.warn('[casting] onPlayerError:', e)
       playing.value = false
       loading.value = false
+      clearSeekState()
       sendRemoteEvent(DLNA_REMOTE_EVENT.STOP, {})
       errorText.value = '播放失败，请在手机端重新投屏'
     }
@@ -498,10 +589,122 @@ export default defineComponent({
       } catch (e) {}
     }
 
+    // ---------- 快进/快退 seek（组件事件驱动，对齐 xiaoyoucast 契约） ----------
+    /**
+     * seek 目标上限保护（对齐 xiaoyoucast seekTailLimit）：
+     * 长视频保留末尾 7 秒（防止拖到真正末尾触发播放完成/播完兜底自动 stop）；
+     * 短视频（≤7s）允许拖到真实末尾（避免 curDuration-7000 算出负数）。
+     */
+    const clampSeekTarget = (ms: number): number => {
+      const dur = curDuration.value
+      if (dur > 7000) return Math.max(0, Math.min(ms, dur - 7000))
+      if (dur > 0) return Math.max(0, Math.min(ms, dur))
+      return Math.max(0, ms)
+    }
+
+    /** 组件 emit onSeekStart(progress)：seek 开始 → 暂停播放并上报（对齐 xiaoyoucast onSeekBarSeekStart） */
+    const onSeekStart = (p: number) => {
+      wasPlayingBeforeSeek = playing.value
+      seeking.value = true
+      if (wasPlayingBeforeSeek) {
+        const manager = playerManagerRef.value
+        if (manager) {
+          try {
+            manager.pause()
+            playing.value = false
+            sendRemoteEvent(DLNA_REMOTE_EVENT.PAUSE, {})
+          } catch (e) {}
+        }
+      }
+      // 停掉真实进度定时器：避免 1s 轮询上报真实 position 干扰 seek（组件进度由
+      // setProgress 驱动）；也避免 seek 值接近末尾时误触发播完兜底
+      stopProgressTimer()
+      if (p >= 0) {
+        progressText.value = fmtTime(p)
+        if (curDuration.value > 0) {
+          progressPercent.value = Math.min(100, (p / curDuration.value) * 100)
+        }
+      }
+      console.log('[casting] onSeekStart:', p)
+    }
+
+    /** 组件 emit onSeekStop(progress)：seek 结束 → 真正 seekTo + 上报 + 恢复播放 */
+    const onSeekStop = (p: number) => {
+      seeking.value = false
+      const target = clampSeekTarget(p >= 0 ? p : curProgress.value)
+      const manager = playerManagerRef.value
+      if (manager) {
+        try {
+          manager.seekTo(target)
+          console.log('[casting] onSeekStop → seekTo', target)
+        } catch (e) {
+          console.warn('[casting] seekTo error:', e)
+        }
+      }
+      // 更新本地基准（倒退保护基准跟进，避免 seek 后首轮真实进度被误判倒退）
+      curProgress.value = target
+      progressText.value = fmtTime(target)
+      if (curDuration.value > 0) {
+        progressPercent.value = Math.min(100, (target / curDuration.value) * 100)
+      }
+      sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: target })
+      if (wasPlayingBeforeSeek) {
+        seekResumeTimer = setTimeout(() => {
+          seekResumeTimer = -1
+          if (isStopped) return
+          try {
+            manager.start(0)
+            playing.value = true
+            loading.value = false
+            sendRemoteEvent(DLNA_REMOTE_EVENT.PLAY, {})
+            // 兜底启动进度定时器（不依赖 onPlayerPlaying 是否触发）
+            startProgressTimer()
+          } catch (e) {}
+        }, 120)
+      }
+    }
+
+    /** 组件 emit onSeekChanged(progress)：拖动/步进中进度预览（触摸拖动场景，电视步进也走 setProgress） */
+    const onSeekChanged = (p: number) => {
+      if (p >= 0) {
+        progressText.value = fmtTime(p)
+        if (curDuration.value > 0) {
+          progressPercent.value = Math.min(100, (p / curDuration.value) * 100)
+        }
+      }
+    }
+
+    /** 组件 emit onFocusChanged(focused)：聚焦时高亮提示可操作 */
+    const onSeekbarFocusChanged = (focused: boolean) => {
+      seekBarFocused.value = focused
+    }
+
+    /** 切集/停止/退出时清理 seek 状态 */
+    const clearSeekState = () => {
+      if (seekResumeTimer !== -1) {
+        clearTimeout(seekResumeTimer)
+        seekResumeTimer = -1
+      }
+      seeking.value = false
+      // 组件复位（未在 seek 态时无副作用）
+      const sb = seekBarRef.value
+      if (sb && typeof sb.stopSeek === 'function') {
+        try {
+          sb.stopSeek()
+        } catch (e) {}
+      }
+    }
+
     // ---------- TV 遥控控制条 ----------
     const onTogglePlay = () => {
       const manager = playerManagerRef.value
       if (!manager) return
+      // seek 结束恢复播放的延迟定时器未执行前用户手动按 OK：取消自动恢复，
+      // 交给下面的播放/暂停逻辑处理，避免 120ms 后二次 start
+      if (seekResumeTimer !== -1) {
+        clearTimeout(seekResumeTimer)
+        seekResumeTimer = -1
+      }
       if (playing.value) {
         try {
           manager.pause()
@@ -514,6 +717,8 @@ export default defineComponent({
           playing.value = true
           loading.value = false
           sendRemoteEvent(DLNA_REMOTE_EVENT.PLAY, {})
+          // 兜底启动进度定时器（对齐 onDlnaPlay 的做法）
+          startProgressTimer()
         } catch (e) {}
       }
     }
@@ -529,6 +734,7 @@ export default defineComponent({
     }
 
     const stopAndExit = () => {
+      isStopped = true
       const manager = playerManagerRef.value
       if (manager) {
         try {
@@ -539,6 +745,7 @@ export default defineComponent({
       }
       clearTimeout(stopDelayTimer)
       stopProgressTimer()
+      clearSeekState()
       sendRemoteEvent(DLNA_REMOTE_EVENT.PAUSE, {})
       // 音乐类先 pause 再 stop（对齐 xiaoyoucast 音乐处理），视频直接 stop
       setTimeout(() => {
@@ -565,6 +772,8 @@ export default defineComponent({
     // TV 端按下键时，把 position 上报为总时长，抖音下次轮询即判定播完 → 换集。
     let lastForceComplete = 0
     const forceComplete = () => {
+      // seek 预览中按下键：先落位 seek（避免切集与 seek 定时器并发冲突）
+      clearSeekState()
       const dur = curDuration.value // 毫秒（可能为 0：切集后新集时长未就绪）
       const now = Date.now()
       if (now - lastForceComplete < 1500) return // 防抖：抖音轮询周期 ~1s
@@ -588,22 +797,69 @@ export default defineComponent({
       console.log('[casting] 下键 → 发 next（Rust 渐进持续导向总时长）')
     }
 
-    /** 真机 TV 遥控器按键（页面实例模式由框架回调）：DPAD_DOWN=20 / 键盘 ArrowDown=40 */
-    const onKeyDown = (keyCode: number, ..._rest: unknown[]) => {
-      if (keyCode === 20 || keyCode === 40) {
+    /**
+     * 按键处理（纯快应用契约，无 window/DOM hack）：
+     * 真机由框架（页面实例机制）调用；web-renderer 经 TVFocusManager
+     * _callCurrentPageMethod 回调，携带 ESKeyEvent（{keyCode, key, repeat, ...}）。
+     * 返回 true = 事件已消费（等价真机 View 拦截）。
+     *  keyCode：DPAD_LEFT=21 / DPAD_RIGHT=22 → seekbar 聚焦时快退/快进（长按连续）
+     *          DPAD_CENTER=23 / ENTER=66 / MEDIA_PLAY_PAUSE=85 → 播放/暂停
+     *          DPAD_DOWN=20 → 抖音切下一集
+     * 注意：不过滤 repeat——qt-seek-bar 组件 startSeek 每次调用只步进一格，
+     * 长按连续快进依赖系统 keydown 自动重复驱动（组件内部 seekCount 加速）。
+     */
+    const onKeyDown = (keyEvent: any): boolean => {
+      // 兼容两种调用形态：es3 框架传 ESKeyEvent 对象；历史调用可能传裸 keyCode
+      const kc = typeof keyEvent === 'number' ? keyEvent : Number(keyEvent?.keyCode)
+      const sb = seekBarRef.value
+      const seekbarFocused = !!sb && typeof sb.isSeekBarFocused === 'function' && sb.isSeekBarFocused()
+      if (kc === 21 || kc === 22) {
+        // 仅 seekbar 聚焦且时长已知（非直播/流式）时消费左右键做快进/快退
+        if (seekbarFocused && curDuration.value > 0) {
+          try {
+            sb.startSeek(kc === 22)
+          } catch (e) {}
+          return true
+        }
+        return false // 未聚焦 seekbar：不消费，交给焦点系统移动焦点
+      }
+      if (kc === 23 || kc === 66 || kc === 85 || kc === 13) {
+        if (seekbarFocused) {
+          onTogglePlay()
+          return true
+        }
+        return false // 未聚焦 seekbar：不消费（如焦点在按钮上时触发按钮点击）
+      }
+      if (kc === 20 || kc === 40) {
         forceComplete()
         return true
       }
       return false
     }
 
+    /** 按键抬起：左右键松手 → 组件 stopSeek（emit onSeekStop → 真正 seekTo） */
+    const onKeyUp = (keyEvent: any): boolean => {
+      const kc = typeof keyEvent === 'number' ? keyEvent : Number(keyEvent?.keyCode)
+      if (kc === 21 || kc === 22) {
+        const sb = seekBarRef.value
+        if (sb && typeof sb.stopSeek === 'function') {
+          try {
+            sb.stopSeek()
+          } catch (e) {}
+        }
+        return true
+      }
+      return false
+    }
+
     /**
-     * 返回键（es3-router dispatchBackPressed 会优先调用页面实例的 onBackPressed）：
-     * 投屏中按返回 = 断开投屏：停播 + 上报 stop + 收起播放层。
+     * 返回键（框架回调：web-renderer 先分发 App 根级组件 onBackPressed，返回 true
+     * 即消费，不再派发底层页面）：投屏中按返回 = 断开投屏：停播 + 上报 stop + 收起播放层。
      */
-    const onBackPressed = () => {
+    const onBackPressed = (): boolean => {
       console.log('[casting] onBackPressed → 断开投屏')
       stopAndExit()
+      return true
     }
 
     /** 页面被切到后台（Home/切应用）：同样停播断开，防止静默继续占网/出声 */
@@ -615,24 +871,29 @@ export default defineComponent({
     // ---------- 生命周期 ----------
     let removeActionListener: (() => void) | null = null
     let removeControlListener: (() => void) | null = null
-    let removeKeyHandler: (() => void) | null = null
+
+    /** 用投屏参数起播（同 URL 已在播则跳过，防 onESCreate/onMounted 双触发重播） */
+    const playWithParams = (params: any): boolean => {
+      const url = params && params.url
+      if (!url) return false
+      if (url === cUrl && playing.value) return true
+      if (params.source) source.value = params.source as string
+      if (params.title) title.value = params.title as string
+      initPlay(url)
+      return true
+    }
 
     const initPlaySource = () => {
-      // 覆盖层模式：props.url 优先
+      // props 直传（兼容）
       if (props.url) {
         if (props.title) title.value = props.title
         initPlay(props.url)
         return
       }
-      // 路由模式兜底：route.params
+      // route.params
       const params: any = (route && route.params) || {}
-      if (params.source) source.value = params.source as string
-      if (params.title) title.value = params.title as string
-      if (params.url) {
-        initPlay(params.url as string)
-        return
-      }
-      // 模块级待播参数兜底（App.vue 收到 playerUrl 时写入）
+      if (playWithParams(params)) return
+      // 模块级待播参数兜底（App.vue 收到 playerUrl 时写入，防 push 时序丢参）
       const pending = getPendingPlay()
       if (pending && pending.url) {
         if (pending.title) title.value = pending.title
@@ -640,20 +901,23 @@ export default defineComponent({
       }
     }
 
-    // 覆盖层模式：App.vue 更新 props.url（新投屏/换源）→ 重播
-    watch(
-      () => props.url,
-      (newUrl, oldUrl) => {
-        if (!newUrl) return
-        if (newUrl === oldUrl) return
-        console.log('[casting] props.url 变化 → 重播', newUrl)
-        if (props.title) title.value = props.title
-        initPlay(newUrl)
-      }
-    )
+    /** 路由页创建回调（es3-router 创建页面时注入 route.params） */
+    const onESCreate = (params: any) => {
+      console.log('[casting] onESCreate:', params)
+      playWithParams(params)
+    }
+
+    /** 路由页重复打开回调（SINGLE_TASK：新投屏/换源 URL 重播） */
+    const onESNewIntent = (params: any) => {
+      console.log('[casting] onESNewIntent:', params)
+      playWithParams(params)
+    }
 
     onMounted(() => {
-      console.log('[casting] mounted', { url: props.url, title: props.title })
+      console.log('[casting] mounted')
+      // 初始化进度条组件（模式/样式/thumb），聚焦落在 seekbar 上
+      initSeekBar()
+      // 路由页模式参数由 onESCreate 注入；此处兜底（框架未回调 onESCreate 的环境）
       initPlaySource()
       // 下行投屏请求（ACTION_DLNA playerUrl，已在播放时的重播）
       removeActionListener = initDlnaActionListener({ onPlayerUrl: onDlnaPlay })
@@ -664,31 +928,23 @@ export default defineComponent({
         onPause: onDlnaPause,
         onStop: onDlnaStop,
       })
-      // web/desktop：覆盖层模式下无页面实例回调，直接监听 window keydown
-      //（真机 TV 遥控器由页面实例 onKeyDown 路径处理）
-      if (typeof window !== 'undefined') {
-        const onKey = (e: KeyboardEvent) => {
-          if (e.key === 'ArrowDown' || e.keyCode === 40 || e.keyCode === 20) {
-            e.preventDefault()
-            forceComplete()
-          }
-        }
-        window.addEventListener('keydown', onKey)
-        removeKeyHandler = () => window.removeEventListener('keydown', onKey)
-      }
+      // 按键处理走页面实例回调（onKeyDown/onKeyUp/onBackPressed，框架分发，
+      // web-renderer 经 TVFocusManager._callCurrentPageMethod 调用；真机由原生
+      // 页面实例机制调用）——不使用 window/DOM hack，业务层与真机同一契约。
     })
 
     onUnmounted(() => {
       if (removeActionListener) removeActionListener()
       if (removeControlListener) removeControlListener()
-      if (removeKeyHandler) removeKeyHandler()
       clearTimeout(stopDelayTimer)
       stopProgressTimer()
+      clearSeekState()
     })
 
     return {
       rootRef,
       playerManagerRef,
+      seekBarRef,
       playerWindowType,
       playerListRef,
       playerViewListRef,
@@ -701,6 +957,12 @@ export default defineComponent({
       progressText,
       durationText,
       progressPercent,
+      seeking,
+      seekBarFocused,
+      onSeekStart,
+      onSeekStop,
+      onSeekChanged,
+      onSeekbarFocusChanged,
       onPlayerInitialized,
       onPlayerPrepared,
       onPlayerPlaying,
@@ -715,7 +977,10 @@ export default defineComponent({
       onStop,
       onBackHome,
       onKeyDown,
+      onKeyUp,
       onBackPressed,
+      onESCreate,
+      onESNewIntent,
       onESStop,
     }
   },
@@ -856,7 +1121,8 @@ export default defineComponent({
   margin-right: 24px;
 }
 .ctrl-btn[focused],
-.ctrl-btn:focus {
+.ctrl-btn:focus,
+.ctrl-btn:hover {
   transform: scale(1.06);
   background: rgba(124, 92, 255, 0.18);
 }
@@ -879,30 +1145,22 @@ export default defineComponent({
   color: #5b8cff;
 }
 
-/* 进度 */
-.progress-wrap {
+/* 进度条（qt-seek-bar 组件，TVSeekBarViewComponent 渲染） */
+.seekbar-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 560px;
+  width: 620px;
   margin-left: 30px;
 }
-.progress-track {
-  width: 560px;
-  height: 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.18);
-  overflow: hidden;
+.seek-bar {
+  width: 620px;
+  height: 60px;
 }
-.progress-fill {
-  height: 100%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #7c5cff, #5b8cff);
-  transition: width 0.3s ease;
-}
-.progress-time {
+.seek-time-text {
   font-size: 22px;
   color: #c7d2ea;
-  margin-top: 10px;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
 }
 </style>
