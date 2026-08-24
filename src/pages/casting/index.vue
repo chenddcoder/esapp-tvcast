@@ -278,8 +278,8 @@ export default defineComponent({
       let endNotified = false
       progressTimer = setInterval(() => {
         try {
-          const { dur, pos } = readProgress()
-          applyProgress(dur, pos)
+          const { dur: rawDur, pos } = readProgress()
+          applyProgress(rawDur, pos)
           // 播完兜底（不依赖 video ended 事件）：
           // 部分 mp4（抖音 ott_cast 投屏 URL）在 HTML5 video 播到末尾不触发
           // ended → onPlayerCompleted 不执行 → 不上报"超过时长"的 position →
@@ -288,9 +288,19 @@ export default defineComponent({
           //   HLS/seek 时 currentTime 末尾抖动幅度可达数百 ms，停滞检测会被
           //   抖动重置；只要 pos 稳定在末尾区域内即可）。
           // 暂停场景由 onPlayerPaused 停定时器兜住，不会误判。
+          //
+          // ⚠️ 勿用每次 readProgress 的裸 pos / dur 做判定：
+          //   短视频/ott_cast 播完瞬间 manager.getCurrentPosition()/getDuration()
+          //   会失效返回 0/NaN（Me() 抖动），若用裸 pos，假 0 会把 stallTick 反复
+          //   清零 → 永远攒不到 2 → 播完兜底不触发 → 不切集、进度恒 ==dur。
+          //   因此进度用"倒退保护后的有效值" curProgress（假 0 已被 applyProgress
+          //   过滤且不再回写），时长用已缓存的 curDuration 兜底（播完后 dur 失效时
+          //   不闪 0、不回退，稳定保持真实总时长）。
           // 触发后【停止定时器锁死进度】：AvTransport pos 稳定保持 dur+1000，
           // 客户端多轮轮询稳定看到 RelTime>TrackDuration → 必然判定播完切集。
-          if (dur > 0 && pos >= dur - 500) {
+          const dur = rawDur > 0 ? rawDur : (curDuration.value > 0 ? curDuration.value : rawDur)
+          const effectivePos = curProgress.value >= 0 ? curProgress.value : pos
+          if (dur > 0 && effectivePos >= dur - 500) {
             stallTick++
             if (stallTick >= 2 && !endNotified) {
               endNotified = true
