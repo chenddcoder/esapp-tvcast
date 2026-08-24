@@ -591,34 +591,40 @@ export default defineComponent({
 
     // ---------- 快进/快退 seek（组件事件驱动，对齐 xiaoyoucast 契约） ----------
     /**
-     * seek 目标上限保护（对齐 xiaoyoucast seekTailLimit）：
-     * 长视频保留末尾 7 秒（防止拖到真正末尾触发播放完成/播完兜底自动 stop）；
-     * 短视频（≤7s）允许拖到真实末尾（避免 curDuration-7000 算出负数）。
+     * seek 目标范围保护：0 ~ 真实时长。不做尾部回退——拖拽到头（组件 progress 可达
+     * maxProgress=时长）就精确 seek 到该位置，seekTo 后恢复播放自然播到末尾触发播完
+     * （用户拖到头就是想看结尾，观感不应倒退几秒）。播放完成由 onPlayerCompleted
+     * 统一兜底（上报 dur+1000 + 1.2s 后 STOP），无需在 seek 阶段预留尾部。
      */
     const clampSeekTarget = (ms: number): number => {
       const dur = curDuration.value
-      if (dur > 7000) return Math.max(0, Math.min(ms, dur - 7000))
       if (dur > 0) return Math.max(0, Math.min(ms, dur))
       return Math.max(0, ms)
     }
 
-    /** 组件 emit onSeekStart(progress)：seek 开始 → 暂停播放并上报（对齐 xiaoyoucast onSeekBarSeekStart） */
+    /** 组件 emit onSeekStart(progress)：seek 开始 → 暂停播放并上报（对齐 xiaoyoucast onSeekBarSeekStart）。
+     *  注意：qt-seek-bar 的 startSeek 在每次 keydown（含系统长按自动重复）都会 emit onSeekStart，
+     *  只有【首次进入 seek 态】才记录 wasPlayingBeforeSeek 并暂停——否则重复 keydown 会把
+     *  wasPlayingBeforeSeek 覆盖成 false（首次 pause 后 playing.value 已为假），导致松手
+     *  onSeekStop 时误判"seek 前未在播放"而不恢复播放。 */
     const onSeekStart = (p: number) => {
-      wasPlayingBeforeSeek = playing.value
-      seeking.value = true
-      if (wasPlayingBeforeSeek) {
-        const manager = playerManagerRef.value
-        if (manager) {
-          try {
-            manager.pause()
-            playing.value = false
-            sendRemoteEvent(DLNA_REMOTE_EVENT.PAUSE, {})
-          } catch (e) {}
+      if (!seeking.value) {
+        wasPlayingBeforeSeek = playing.value
+        seeking.value = true
+        if (wasPlayingBeforeSeek) {
+          const manager = playerManagerRef.value
+          if (manager) {
+            try {
+              manager.pause()
+              playing.value = false
+              sendRemoteEvent(DLNA_REMOTE_EVENT.PAUSE, {})
+            } catch (e) {}
+          }
         }
+        // 停掉真实进度定时器：避免 1s 轮询上报真实 position 干扰 seek（组件进度由
+        // setProgress 驱动）；也避免 seek 值接近末尾时误触发播完兜底
+        stopProgressTimer()
       }
-      // 停掉真实进度定时器：避免 1s 轮询上报真实 position 干扰 seek（组件进度由
-      // setProgress 驱动）；也避免 seek 值接近末尾时误触发播完兜底
-      stopProgressTimer()
       if (p >= 0) {
         progressText.value = fmtTime(p)
         if (curDuration.value > 0) {
