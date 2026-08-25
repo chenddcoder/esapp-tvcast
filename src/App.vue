@@ -6,7 +6,8 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, onUnmounted } from 'vue'
-import { useESRouter } from '@extscreen/es3-router'
+import { useESRouter, ESRouteLaunchMode } from '@extscreen/es3-router'
+import routes from './routes'
 import { markDlnaReady, initDlnaActionListener, setPendingPlay, DlnaPlayPayload } from './tools/dlna-bridge'
 
 /**
@@ -41,11 +42,32 @@ export default defineComponent({
       console.log('[App] 收到投屏请求 → push casting 播放页', { url, title: payload.title })
       // 模块级待播参数兜底（casting 组件 route.params 未携带时读取）
       setPendingPlay({ url, title: payload.title || '' })
-      if (router?.push) {
-        router
-          .push({ name: 'casting', params: { url, title: payload.title || '' } })
-          .catch((e) => console.warn('[App] push casting failed:', e))
+      pushRoute({ name: 'casting', params: { url, title: payload.title || '' } })
+    }
+
+    /**
+     * 单例页面（launchMode=SINGLE_TASK）去重 push：
+     * 目标页面已在页面栈顶时不重复 push，避免同一投屏事件被两条路径同时
+     * 重播（实测 2026-08-25）：
+     *   ① casting 页自身监听的 ACTION_DLNA(playerUrl)（onDlnaPlay）→ initPlay
+     *   ② 本处 push → es3-router SINGLE_TASK 复用 → onESNewIntent → initPlay
+     * 同一个 url 被 initPlay 两次 → 两个播放器实例 → **多个播放声音**。
+     * 跳过 push 后由当前页面的 onDlnaPlay 单路径重播，事件不丢失。
+     */
+    const pushRoute = (route: { name: string; params?: Record<string, unknown> }): boolean => {
+      if (!router?.push) return false
+      const matched = routes.find((r: any) => r.name === route.name)
+      const isSingleTask =
+        !!matched && matched.launchMode === ESRouteLaunchMode.ES_ROUTE_LAUNCH_MODE_SINGLE_TASK
+      const currentRoute: any = (router as any).currentRoute?.value
+      if (isSingleTask && currentRoute && currentRoute.name === route.name) {
+        console.log(`[App] ${route.name} 为单例页面且已在栈顶，跳过重复 push（由当前页单路径重播）`)
+        return false
       }
+      router
+        .push(route as never)
+        .catch((e) => console.warn('[App] push failed:', e))
+      return true
     }
 
     let removeActionListener: (() => void) | null = null

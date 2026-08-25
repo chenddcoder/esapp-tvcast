@@ -1,7 +1,7 @@
 {
   "name": "cn.chenddcoder.tvcast",
   "appName": "tvcast",
-  "version": "1.0.45",
+  "version": "1.0.47",
   "main": "./src/main.ts",
   "private": true,
   "scripts": {
@@ -98,5 +98,17 @@
     "webpack": "5.94.0",
     "webpack-cli": "^4.7.2",
     "webpack-obfuscator": "^3.5.1"
+  },
+  "overrides": {
+    "webpack": "5.94.0",
+    "@vue/compiler-core": "3.5.33",
+    "@vue/compiler-dom": "3.5.33",
+    "@vue/compiler-sfc": "3.5.33",
+    "@vue/compiler-ssr": "3.5.33",
+    "@vue/reactivity": "3.5.33",
+    "@vue/runtime-core": "3.5.33",
+    "@vue/runtime-dom": "3.5.33",
+    "@vue/server-renderer": "3.5.33",
+    "@vue/shared": "3.5.33"
   }
 }
