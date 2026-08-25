@@ -683,7 +683,10 @@ export default defineComponent({
       // ① **不能立即 manager.stop()**——切集 Play(新 url) 在 ~100ms 内到达，播放器
       //   先被 stop 后 initPlay(playMediaList) 可能起不来（状态残留），表现为
       //   "客户端已切集但 tvcast 还停在上一个视频"。播放器停止延迟到退出确认时再做。
-      // ② 延迟 400ms 退出，切集 Play 在窗口内到达时由 onDlnaPlay 取消退出 + 直接换源。
+      // ② 延迟退出窗口（2000ms，2026-08-25 实测加长）：抖音**自动投下一条**时
+      //   Stop→SetAVTransportURI→Play 的间隔可能远超 400ms，窗口太短页面先退出，
+      //   下一条 Play 到达时页面已销毁（重建页面有闪屏/播放器重建开销）。
+      //   2000ms 覆盖自动连播间隔；窗口内新 url 到达由 onDlnaPlay 取消退出 + 换源。
       sendRemoteEvent(DLNA_REMOTE_EVENT.STOP, {})
       clearTimeout(stopExitTimer)
       stopExitTimer = setTimeout(() => {
@@ -691,7 +694,7 @@ export default defineComponent({
         // 统一走 stopAndExit（幂等 + router.back() 退出路由页），避免与
         // onESStop 的 stopAndExit 各退一次把 launcher 也退出
         stopAndExit()
-      }, 400)
+      }, 2000)
     }
 
     // ---------- 快进/快退 seek（组件事件驱动，对齐 xiaoyoucast 契约） ----------
