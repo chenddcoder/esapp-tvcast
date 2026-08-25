@@ -688,16 +688,9 @@ export default defineComponent({
       clearTimeout(stopExitTimer)
       stopExitTimer = setTimeout(() => {
         stopExitTimer = -1
-        const manager = playerManagerRef.value
-        if (manager) {
-          try {
-            manager.stop()
-          } catch (e) {}
-        }
-        emit('exit')
-        try {
-          if (!props.url) router?.back?.()
-        } catch (e) {}
+        // 统一走 stopAndExit（幂等 + router.back() 退出路由页），避免与
+        // onESStop 的 stopAndExit 各退一次把 launcher 也退出
+        stopAndExit()
       }, 400)
     }
 
@@ -852,6 +845,10 @@ export default defineComponent({
     }
 
     const stopAndExit = () => {
+      // 幂等（2026-08-25 实测）：Esc → onKeyDown 兜底 + onBackPressed 双通道触发，
+      // 页面卸载又触发 onESStop → stopAndExit 可能被调用多次，每次 router.back()
+      // 都会退一层——二次 back 会把 launcher 也退掉（应用整体白屏）。只执行一次。
+      if (isStopped) return
       isStopped = true
       const manager = playerManagerRef.value
       if (manager) {
