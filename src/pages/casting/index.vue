@@ -183,6 +183,14 @@ export default defineComponent({
     // initPlay 换源延迟定时器（2026-08-25）：先 stop 复位播放器，延迟 200ms 后
     // playMediaList 起新流——播放中直接 playMediaList 不触发 video 换 src。
     let playMediaTimer: any = -1
+    // 下键 forceComplete 防抖窗口 + 切集间隙补发（2026-08-25 实测）：
+    // 无效场景"当前进度跟着播放进度走"= forceComplete 未执行 UI 置总时长分支——
+    // ① 切集后立即再按落入 1500ms 防抖窗口被吞（最可能，切集流程可 <1.5s 完成）；
+    // ② 切集间隙 dur=0（onPlayerStopped 清时长）走了空分支。
+    // 修复：initPlay 换集时重置 lastForceComplete（切集后第一下必生效）；
+    // dur<=0 时按下记 pending，时长就绪后由 applyProgress 补发 next + UI 置总进度。
+    let lastForceComplete = 0
+    let pendingForceComplete = false
 
     // ---------- 快进/快退 seek（qt-seek-bar 组件契约，对齐 xiaoyoucast） ----------
     // 交互：seekbar 聚焦后，左右键调组件 startSeek(forward)（组件内部每次调用
@@ -258,6 +266,11 @@ export default defineComponent({
       isStopped = false
       // 换集/重播：重置进度基准（applyProgress 倒退保护不误伤新集从 0 起播）
       curProgress.value = -1
+      // 换集/重播：重置下键防抖窗口——切集后第一下按键必生效，
+      // 不被上次按下（<1.5s 前）的防抖吞掉（"切集后按键无效"根因）。
+      lastForceComplete = 0
+      // 清间隙补发标志：客户端已切集到达新 url，无需再补发（防连环切集）
+      pendingForceComplete = false
       const manager = playerManagerRef.value
       if (!manager) return
       try {
@@ -386,6 +399,31 @@ export default defineComponent({
           sendRemoteEvent(DLNA_REMOTE_EVENT.POSITION, { position: pos })
         }
       }
+      // 切集间隙按键补发（2026-08-25）：dur 未就绪时按下的 next 在 Rust 侧
+      // 因 dur=0 被忽略（force_complete && dur>0 条件不满足），时长就绪后
+      // 补发一次 + UI 置总进度（用户立即可见"当前进度=总时长"反馈，与正常
+      // 按下一致）。仅补发一次（清标志），且 initPlay 换集时已清——客户端
+      // 切集流程中不会连环触发。
+      flushPendingForceComplete()
+    }
+
+    /**
+     * 补发切集间隙丢失的 next：forceComplete 在 dur 未就绪时记 pending 并停了
+     * progress timer（applyProgress 不再跑），因此补发点必须挂在"时长就绪"的
+     * 独立触发路径上：onPlayerPlaying / onPlayerDurationChanged / applyProgress
+     * （timer 重启后每 tick）三处都调用，保证任意路径都能补发。
+     */
+    const flushPendingForceComplete = () => {
+      const dur = curDuration.value
+      if (pendingForceComplete && dur > 0) {
+        pendingForceComplete = false
+        curProgress.value = dur
+        progressPercent.value = 100
+        progressText.value = fmtTime(dur)
+        syncSeekBarProgress(dur)
+        console.log('[casting] 时长就绪 → 补发 next（切集间隙按键未丢）')
+        sendRemoteEvent(DLNA_REMOTE_EVENT.NEXT, {})
+      }
     }
 
     const startProgressTimer = () => {
@@ -475,6 +513,9 @@ export default defineComponent({
           }
         } catch (e) {}
       }
+      // 切集间隙按键补发（onPlayerPlaying 是"时长就绪"的可靠触发点——
+      // forceComplete 停掉 progress timer 后，此事件重启 timer 并补发）
+      flushPendingForceComplete()
       // 进度同步定时器（对齐 xiaoyoucast dlna-play 的 startProgressTimer）：
       // 主动轮询 getCurrentPosition/getDuration 上报，不依赖 callback 时序
       //（web 端 ESPlayerManager 的 setProgressCallback 可能在播放器组件
@@ -518,6 +559,8 @@ export default defineComponent({
         durationText.value = fmtTime(d)
         syncSeekBarMax(d)
         sendRemoteEvent(DLNA_REMOTE_EVENT.DURATION, { duration: d })
+        // 切集间隙按键补发（onPlayerDurationChanged 也是"时长就绪"触发点）
+        flushPendingForceComplete()
       }
     }
 
@@ -845,7 +888,7 @@ export default defineComponent({
     // 原理：抖音连续剧投屏靠轮询 GetPositionInfo 判断"当前集播完"
     //（RelTime >= TrackDuration 阈值）→ 自动 SetAVTransportURI 下一集 + Play。
     // TV 端按下键时，把 position 上报为总时长，抖音下次轮询即判定播完 → 换集。
-    let lastForceComplete = 0
+    //（lastForceComplete 声明在 setup 顶部，initPlay 换集时重置）
     const forceComplete = () => {
       // seek 预览中按下键：先落位 seek（避免切集与 seek 定时器并发冲突）
       clearSeekState()
@@ -862,6 +905,12 @@ export default defineComponent({
         curProgress.value = dur
         progressPercent.value = 100
         progressText.value = fmtTime(dur)
+      } else {
+        // dur 未就绪（切集间隙/新集 loading）→ 记 pending，等时长就绪后
+        // 由 applyProgress 补发 next + UI 置总进度（否则按键无任何反馈，
+        // 表现为"当前进度跟着播放进度走"）。
+        pendingForceComplete = true
+        console.log('[casting] 下键 → dur 未就绪，等时长就绪后补发 next')
       }
       // 发 next 事件（复用 xiaoyoucast 契约，不新增事件名）——Rust 侧在
       // GetPositionInfo 响应时渐进处理：客户端上次回报 <1s 先给 2s 过渡值
