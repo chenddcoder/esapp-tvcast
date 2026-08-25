@@ -175,6 +175,14 @@ export default defineComponent({
     let cUrl = ''
     let isStopped = false
     let stopDelayTimer: any = -1
+    // 手机端 Stop → 延迟退出页面定时器（2026-08-25 切集兼容）：
+    // iPhone 抖音切集流程 = Stop → SetAVTransportURI → Play，首个 Stop 若立即退出
+    // 页面，后续 Play(新集) 到达时页面已销毁（App 单例去重还会跳过 push）→ 新视频
+    // 无人播放。延迟 400ms 退出，换集 Play 在窗口内到达则取消退出。
+    let stopExitTimer: any = -1
+    // initPlay 换源延迟定时器（2026-08-25）：先 stop 复位播放器，延迟 200ms 后
+    // playMediaList 起新流——播放中直接 playMediaList 不触发 video 换 src。
+    let playMediaTimer: any = -1
 
     // ---------- 快进/快退 seek（qt-seek-bar 组件契约，对齐 xiaoyoucast） ----------
     // 交互：seekbar 聚焦后，左右键调组件 startSeek(forward)（组件内部每次调用
@@ -253,14 +261,48 @@ export default defineComponent({
       const manager = playerManagerRef.value
       if (!manager) return
       try {
-        manager.initialize()
-        manager.setPlayMediaListMode(ESPlayerPlayMode.ES_PLAYER_PLAY_MODE_ONCE)
-        manager.setPlayRate(ESPlayerRate.ES_PLAYER_RATE_1)
-        manager.setSize(1920, 1080)
-        const list = buildPlayList(url)
-        manager.playMediaList(list)
-        // 发起播放即上报 play，让客户端立即进入播放态（预加载阶段）
-        sendRemoteEvent(DLNA_REMOTE_EVENT.PLAY, {})
+        // 切集/重播换源（2026-08-25 实测，Playwright 实证）：**播放中直接
+        // playMediaList 不触发 video 换 src**（切集后 video.src 仍是旧 url，
+        // 前端 JS 状态已切但画面/声音停留在上一集）。先 stop 复位播放器释放
+        // 旧流，延迟 200ms 后再 playMediaList 起新流——对齐 xiaoyoucast
+        // toPlay 的"参数重置 + 200ms 延迟"节奏，确保 ESPlayerManager 从干净
+        // 状态重新走 setVideoPath 链路。
+        clearTimeout(playMediaTimer)
+        try {
+          manager.stop()
+        } catch (e) {}
+        playMediaTimer = setTimeout(() => {
+          try {
+            manager.initialize()
+            manager.setPlayMediaListMode(ESPlayerPlayMode.ES_PLAYER_PLAY_MODE_ONCE)
+            manager.setPlayRate(ESPlayerRate.ES_PLAYER_RATE_1)
+            manager.setSize(1920, 1080)
+            // 换源策略（2026-08-25 Playwright 实证，可播视频复现）：
+            //  - playMediaList 在"已有播放器实例"时 web 端不触发 video 换 src
+            //    （onPlayerPrepared/Playing 假派发，video.src 仍旧 url——JS 状态
+            //    已切但画面/声音停留上一集）
+            //  - playMediaSourceList 直接走 IJKPlayerComponent.setVideoPath，但
+            //    **仅适用于已有 media item 上下文**（首次起播用它不会创建 view）
+            // 因此：播放器已初始化（playerInited）→ 切集换源用 playMediaSourceList；
+            // 首次起播 → playMediaList 完整流程。
+            if (playerInited) {
+              try {
+                manager.playMediaSourceList({ index: 0, list: [{ uri: url, definition: 1 }] } as never)
+                console.log('[casting] 切集换源：playMediaSourceList')
+              } catch (e) {
+                console.warn('[casting] playMediaSourceList failed, fallback playMediaList:', e)
+                manager.playMediaList(buildPlayList(url))
+              }
+            } else {
+              manager.playMediaList(buildPlayList(url))
+              console.log('[casting] 首次起播：playMediaList')
+            }
+            // 发起播放即上报 play，让客户端立即进入播放态（预加载阶段）
+            sendRemoteEvent(DLNA_REMOTE_EVENT.PLAY, {})
+          } catch (e) {
+            console.warn('[casting] initPlay(playMediaList) error:', e)
+          }
+        }, 200)
       } catch (e) {
         console.warn('[casting] initPlay error:', e)
       }
@@ -395,8 +437,13 @@ export default defineComponent({
       progressTimer = -1
     }
 
+    // 播放器是否已初始化（首次起播 onPlayerInitialized 置位；切集换源依据——
+    // playMediaList 只在首次创建 view，切集须用 playMediaSourceList 换 src）
+    let playerInited = false
+
     const onPlayerInitialized = () => {
       console.log('[casting] onPlayerInitialized')
+      playerInited = true
     }
 
     const onPlayerPrepared = () => {
@@ -532,7 +579,14 @@ export default defineComponent({
         return
       }
       if (url === cUrl) {
-        // 同源：恢复播放
+        // 同 url：区分"重投同源恢复播放"与"重复事件幂等"——
+        // 换集后 overlay 缓存补发可能重复送达同一 url，若此时正在播放，
+        // start(0) 会把刚 initPlay 的新视频重置回开头（假象"还在播上一集"）。
+        // 正在播 → 忽略（幂等）；已停止/暂停 → 恢复播放（手机端重投同源）。
+        if (playing.value) {
+          console.log('[casting] 同 url 且正在播放，忽略重复 playerUrl（幂等）', url.slice(0, 60))
+          return
+        }
         const manager = playerManagerRef.value
         if (manager) {
           try {
@@ -546,6 +600,12 @@ export default defineComponent({
       }
       // 新投屏：重播
       if (payload.title) title.value = payload.title
+      // 切集兼容：换集 Play(新 url) 到达 → 取消 onDlnaStop 的延迟退出
+      if (stopExitTimer !== -1) {
+        clearTimeout(stopExitTimer)
+        stopExitTimer = -1
+        console.log('[casting] 切集新视频到达，取消延迟退出')
+      }
       initPlay(url)
       // 切集/重播后显式启动进度定时器（不依赖 onPlayerPlaying 是否触发）：
       // 播完兜底锁死定时器后切集，若播放器未重新派发 playing 事件，定时器
@@ -576,17 +636,26 @@ export default defineComponent({
     }
 
     const onDlnaStop = () => {
-      const manager = playerManagerRef.value
-      if (manager) {
-        try {
-          manager.stop()
-        } catch (e) {}
-      }
+      // 切集兼容（2026-08-25 实测）：iPhone 抖音切集流程为 Stop→SetAVTransportURI→Play。
+      // ① **不能立即 manager.stop()**——切集 Play(新 url) 在 ~100ms 内到达，播放器
+      //   先被 stop 后 initPlay(playMediaList) 可能起不来（状态残留），表现为
+      //   "客户端已切集但 tvcast 还停在上一个视频"。播放器停止延迟到退出确认时再做。
+      // ② 延迟 400ms 退出，切集 Play 在窗口内到达时由 onDlnaPlay 取消退出 + 直接换源。
       sendRemoteEvent(DLNA_REMOTE_EVENT.STOP, {})
-      emit('exit')
-      try {
-        if (!props.url) router?.back?.()
-      } catch (e) {}
+      clearTimeout(stopExitTimer)
+      stopExitTimer = setTimeout(() => {
+        stopExitTimer = -1
+        const manager = playerManagerRef.value
+        if (manager) {
+          try {
+            manager.stop()
+          } catch (e) {}
+        }
+        emit('exit')
+        try {
+          if (!props.url) router?.back?.()
+        } catch (e) {}
+      }, 400)
     }
 
     // ---------- 快进/快退 seek（组件事件驱动，对齐 xiaoyoucast 契约） ----------
@@ -943,6 +1012,8 @@ export default defineComponent({
       if (removeActionListener) removeActionListener()
       if (removeControlListener) removeControlListener()
       clearTimeout(stopDelayTimer)
+      clearTimeout(stopExitTimer)
+      clearTimeout(playMediaTimer)
       stopProgressTimer()
       clearSeekState()
     })
