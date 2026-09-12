@@ -233,7 +233,7 @@ export default defineComponent({
   top: 0;
   width: 1920px;
   height: 1080px;
-  background: #0b1220;
+  background: #0b101e;
   overflow: hidden;
 }
 .bg {
@@ -281,7 +281,7 @@ export default defineComponent({
 }
 .back-icon {
   font-size: 28px;
-  color: #5b8cff;
+  color: #fb615a;
   margin-right: 10px;
 }
 .back-text {
@@ -323,7 +323,7 @@ export default defineComponent({
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #7c5cff, #5b8cff);
+  background: #fb615a;
   color: #fff;
   font-size: 26px;
   font-weight: 700;
@@ -415,7 +415,7 @@ export default defineComponent({
 }
 .dialog-input[focused],
 .dialog-input:focus {
-  border-color: #7c5cff;
+  border-color: #fb615a;
 }
 .dialog-actions {
   margin-top: 32px;
@@ -443,7 +443,7 @@ export default defineComponent({
   color: #eaf0ff;
 }
 .dialog-btn.primary {
-  background: linear-gradient(135deg, #7c5cff, #5b8cff);
+  background: #fb615a;
 }
 .dialog-btn.primary span {
   color: #fff;

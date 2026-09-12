@@ -91,7 +91,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #0b1220;
+  background: #0b101e;
   overflow: hidden;
 }
 

@@ -103,6 +103,7 @@ import {
   getPendingPlay,
   DlnaPlayPayload,
 } from '../../tools/dlna-bridge'
+import { C } from '../../styles/tokens'
 
 /**
  * 投屏播放宿主层（DLNA 接收端播放管理）。
@@ -212,7 +213,7 @@ export default defineComponent({
         sb.setSeekBarMode(QTSeekBarMode.QT_SEEK_BAR_MODE_SINGLE)
         sb.setProgressHeight(12)
         sb.setProgressRadius(6)
-        sb.setProgressColor('#7c5cff')
+        sb.setProgressColor(C.accent)
         sb.setProgressDefaultColor('rgba(255,255,255,0.18)')
         sb.setThumbWidth(40)
         sb.setThumbHeight(40)
@@ -1146,8 +1147,8 @@ export default defineComponent({
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: 5px solid rgba(124, 92, 255, 0.25);
-  border-top-color: #7c5cff;
+  border: 5px solid rgba(251, 97, 90, 0.25);
+  border-top-color: #fb615a;
   animation: spin 0.9s linear infinite;
 }
 @keyframes spin {
@@ -1268,7 +1269,7 @@ export default defineComponent({
   color: #ff7875;
 }
 .ctrl-btn.home .ctrl-icon {
-  color: #5b8cff;
+  color: #fb615a;
 }
 
 /* 进度条（qt-seek-bar 组件，TVSeekBarViewComponent 渲染） */

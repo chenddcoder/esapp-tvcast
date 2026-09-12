@@ -1,95 +1,40 @@
 <template>
-  <div class="launcher-root" :focusable="false" ref="rootRef">
-    <!-- 背景 -->
-    <div class="bg" :focusable="false"></div>
-    <div class="bg-glow" :focusable="false"></div>
+  <!-- 页面壳：左侧导航轨 + 内容区（首页 / 全部应用 / 游戏中心，视图切换不走路由）+ 底部提示条。
+       为什么用 v-if 视图切换而不是新增路由页：es3-router 3.x 在 web-renderer 下
+       push 后 RouterView 不切换（页面实例机制未在 web 端实现，见 casting 页注释），
+       真机/桌面双端一致的成本最低；同时导航切换零页面开销。
+       投屏页仍走既有路由/覆盖层方案（P3 重做），设置页保持独立路由页。 -->
+  <div class="launcher-root" :focusable="false">
+    <nav-rail :active="view" :status="railStatus" @nav="onNav" />
 
-    <!-- 顶部状态栏 -->
-    <div class="status-bar" :focusable="false">
-      <div class="sb-left" :focusable="false">
-        <div class="brand" :focusable="false">
-          <span class="brand-mark" :focusable="false">投</span>
-          <span class="brand-text" :focusable="false">投屏显象</span>
-        </div>
-        <span class="device-name" :focusable="false">{{ deviceName }}</span>
-      </div>
-      <div class="sb-right" :focusable="false">
-        <div class="cast-ready" :focusable="false">
-          <div class="dot" :focusable="false"></div>
-          <span class="cast-ready-text" :focusable="false">可投屏</span>
-        </div>
-        <span class="wifi" :focusable="false">Wi-Fi</span>
-        <span class="clock" :focusable="false">{{ clock }}</span>
-      </div>
+    <home-view
+      v-if="view === 'home'"
+      :device-name="deviceName"
+      :clock="clock"
+      :date="date"
+      :state-ready="dlnaReady"
+      :state-text="dlnaReady ? '投屏就绪' : '正在启动'"
+      net-text="已连接"
+      @cast="onCast"
+      @open="onOpenApp"
+      @nav="onNav"
+    />
+    <apps-view v-else-if="view === 'apps'" @open="onOpenApp" @search="onSearch" />
+    <!-- 游戏中心：挂载即按缓存/过期策略取游戏库（见 GamesView + gamesApi） -->
+    <games-view v-else @open="onOpenGame" />
+
+    <!-- 提示条必须自己绝对定位：.launcher-root 是 column flex，而 rail / view / toast
+         全走 position:absolute 脱离了文档流，剩下的 static 子元素会被排到容器 y=0
+         （实测：未定位时提示条顶在页面最上方，压住 TopBar 的设备名与时钟）。 -->
+    <div class="hint-wrap" :focusable="false">
+      <hint-bar :hints="hints" :brandline="brandline" />
     </div>
 
-    <!-- 主体 -->
-    <div class="body" :focusable="false">
-      <!-- 最近打开 -->
-      <div class="section" :focusable="false">
-        <div class="section-title" :focusable="false"><span class="bar"></span><span class="st-text">最近打开</span></div>
-        <div class="recent-row" :focusable="false">
-          <div v-for="(app, i) in recent" :key="'r' + i"
-               class="app-card recent"
-               :data-pkg="app.pkg || ''"
-               :focusable="true" eventClick eventFocus
-               name="recentApp"
-               @click="onOpenApp(app)"
-               @focus="onFocus">
-            <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false">
-              <img v-if="app.icon && !iconFailed[app.pkg]" :src="app.icon" @error="onIconError(app)" class="app-icon-img" :focusable="false" />
-              <span v-else class="glyph">{{ app.glyph }}</span>
-            </div>
-            <span class="app-name" :focusable="false">{{ app.name }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 全部应用 -->
-      <div class="section" :focusable="false">
-        <div class="section-title" :focusable="false"><span class="bar"></span><span class="st-text">全部应用</span></div>
-        <div class="app-grid" :focusable="false">
-          <div v-for="(app, i) in allApps" :key="'a' + i"
-               class="app-card grid"
-               :data-pkg="app.pkg || ''"
-               :focusable="true" eventClick eventFocus
-               name="allApp"
-               @click="onOpenApp(app)"
-               @focus="onFocus">
-            <div class="app-icon" :style="{ backgroundColor: app.color }" :focusable="false">
-              <img v-if="app.icon && !iconFailed[app.pkg]" :src="app.icon" @error="onIconError(app)" class="app-icon-img" :focusable="false" />
-              <span v-else class="glyph">{{ app.glyph }}</span>
-            </div>
-            <span class="app-name" :focusable="false">{{ app.name }}</span>
-          </div>
-        </div>
+    <div class="toast-wrap" :focusable="false">
+      <div class="toast" v-if="toast" :focusable="false">
+        <span class="toast-text" :focusable="false">{{ toast }}</span>
       </div>
     </div>
-
-    <!-- 底部 dock -->
-    <div class="dock" :focusable="false">
-      <div class="dock-item" :focusable="true" eventClick eventFocus name="market" @click="onMarket">
-        <div class="dock-icon" :focusable="false"><span class="glyph">店</span></div>
-        <span class="dock-text" :focusable="false">应用商店</span>
-      </div>
-      <div class="dock-item" :focusable="true" eventClick eventFocus name="search" @click="onSearch">
-        <div class="dock-icon" :focusable="false"><span class="glyph">搜</span></div>
-        <span class="dock-text" :focusable="false">搜索</span>
-      </div>
-      <div class="dock-item" :focusable="true" eventClick eventFocus name="settings" @click="onSettings">
-        <div class="dock-icon" :focusable="false"><span class="glyph">设</span></div>
-        <span class="dock-text" :focusable="false">设置</span>
-      </div>
-      <div class="dock-spacer" :focusable="false"></div>
-      <span class="cast-hint" :focusable="false">同一 Wi-Fi 下，手机扫码即可投屏</span>
-      <div class="dock-item cast-btn" :focusable="true" eventClick eventFocus name="cast" @click="onCast">
-        <div class="dock-icon cast" :focusable="false"><span class="glyph">投</span></div>
-        <span class="dock-text" :focusable="false">开始投屏</span>
-      </div>
-    </div>
-
-    <!-- 轻提示 -->
-    <div class="toast" v-if="toast" :focusable="false"><span>{{ toast }}</span></div>
   </div>
 </template>
 
@@ -97,51 +42,47 @@
 import { defineComponent } from 'vue'
 import { useESRouter, useESNativeRouter } from '@extscreen/es3-router'
 import { Native } from '@extscreen/es3-vue'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import NavRail from './NavRail.vue'
+import HomeView from './HomeView.vue'
+import AppsView from './AppsView.vue'
+import GamesView from './GamesView.vue'
+import HintBar from './HintBar.vue'
+import { readGameToken, type GameItem } from './gamesApi'
+import type { AppItem } from './appTypes'
 
-interface AppItem {
-  name: string
-  glyph: string
-  color: string
-  castable: boolean
-  /** 个人快应用包名：有值则点击时通过 nativeRouter（EsNativeModule.launchEsPage）拉起该快应用 */
-  pkg?: string
-  /** 应用真实图标 URL（SVG）：img 直接加载（web-cli DevProxy 会把跨域 img 改写成 /proxy/... 由 DevServer 转发） */
-  icon?: string
-}
+type ViewKey = 'home' | 'apps' | 'games'
 
 export default defineComponent({
   name: 'LauncherPage',
+  components: { NavRail, HomeView, AppsView, GamesView, HintBar },
   setup() {
     const router = useESRouter()
     const nativeRouter = useESNativeRouter()
-    const rootRef = ref()
-    const deviceName = ref('投屏显象_00.00')
-    const clock = ref('')
+    const view = ref<ViewKey>('home')
+    const deviceName = ref('投屏显象')
+    const clock = ref('--:--')
+    const date = ref('')
+    const dlnaReady = ref(false)
     const toast = ref('')
     let toastTimer: any = -1
     let clockTimer: any = -1
 
-    const recent = ref<AppItem[]>([
-      { name: '相册', glyph: '册', color: '#7c5cff', castable: true },
-      { name: '视频', glyph: '影', color: '#ff6a88', castable: true },
-      { name: '音乐', glyph: '音', color: '#22c1c3', castable: true },
-      { name: '文件', glyph: '档', color: '#f7971e', castable: true },
-      { name: '浏览器', glyph: '浏', color: '#43cea2', castable: false },
-    ])
+    const railStatus = computed(() => (dlnaReady.value ? '待投屏' : '启动中'))
 
-    const allApps = ref<AppItem[]>([
-      { name: '视频', glyph: '影', color: '#ff6a88', castable: true },
-      { name: '音乐', glyph: '音', color: '#22c1c3', castable: true },
-      { name: '相册', glyph: '册', color: '#7c5cff', castable: true },
-      { name: '文件', glyph: '档', color: '#f7971e', castable: true },
-      { name: '游戏', glyph: '戏', color: '#ee0979', castable: true },
-      { name: '浏览器', glyph: '浏', color: '#43cea2', castable: false },
-      { name: '天气', glyph: '天', color: '#56ccf2', castable: false, pkg: 'cn.chenddcoder.weather', icon: 'https://www.chenddcoder.cn/upload/weather-icon.svg' },
-      { name: '计算器', glyph: '算', color: '#8e9eab', castable: false },
-      { name: '应用商店', glyph: '店', color: '#11998e', castable: false },
-      { name: '设置', glyph: '设', color: '#667eea', castable: false },
-    ])
+    /** 两屏按键一致（应用少时 02 屏没有搜索，所以不必按 view 分支） */
+    const hints = [
+      { kbd: '↑ ↓ ← →', label: '移动焦点' },
+      { kbd: '确定', label: '打开' },
+      { kbd: '返回', label: '上一层' },
+    ]
+
+    const BRANDS: Record<ViewKey, string> = {
+      home: '客厅投屏中心 · HOME',
+      apps: '客厅投屏中心 · APPS',
+      games: '客厅投屏中心 · GAMES',
+    }
+    const brandline = computed(() => BRANDS[view.value] || BRANDS.home)
 
     const showToast = (msg: string) => {
       toast.value = msg
@@ -149,58 +90,75 @@ export default defineComponent({
       toastTimer = setTimeout(() => (toast.value = ''), 1600)
     }
 
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n)
+    const WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
     const tickClock = () => {
       const d = new Date()
-      const p = (n: number) => (n < 10 ? '0' + n : '' + n)
-      clock.value = `${p(d.getHours())}:${p(d.getMinutes())}`
+      clock.value = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+      date.value = `${d.getMonth() + 1}月${d.getDate()}日 · ${WEEK[d.getDay()]}`
     }
 
-    const onFocus = () => {}
+    const onNav = (key: string) => {
+      if (key === 'home' || key === 'apps' || key === 'games') {
+        view.value = key as ViewKey
+        return
+      }
+      if (key === 'settings') {
+        router.push({ name: 'settings' })
+        return
+      }
+      if (key === 'cast') onCast()
+    }
 
+    /** 投屏入口：真正的内容由手机端推送（DMR 接收端无法自选内容） */
+    const onCast = () => showToast('请从手机相册或视频应用推送到本设备')
+
+    /** 应用磁贴点击：本机个人快应用按包名拉起（EsNativeModule.launchEsPage → es_pkg 解析加载） */
     const onOpenApp = (app: AppItem) => {
-      // 个人快应用：交给 nativeRouter（EsNativeModule.launchEsPage）按包名拉起，
-      // native 端统一走 es_pkg 解析加载，并正确维护返回栈
       if (app.pkg) {
         nativeRouter.push({ pkg: app.pkg })
         return
       }
-      if (app.castable) {
-        router.push({ name: 'casting', params: { source: app.name } })
-      } else {
-        showToast(`「${app.name}」即将接入`)
+      showToast(`「${app.name}」尚未接入`)
+    }
+
+    /**
+     * 游戏磁贴点击：带 token / gameId / source 拉起游戏包。
+     * token 与游戏中心同源（同一 runtime 下 localStorage 共享 gc_token）：有则结算自动上报，
+     * 没有就按游客跑；source 决定游戏内返回去向，'launcher' 表示回到本启动器。
+     */
+    const onOpenGame = async (game: GameItem) => {
+      if (!game.pkg) {
+        showToast(`「${game.name}」暂不可启动`)
+        return
       }
+      // token 读取是异步的（web-renderer 下 localStorage 为 Promise 版，见 tools/storage）
+      const token = await readGameToken()
+      nativeRouter.push({
+        pkg: game.pkg,
+        args: { params: { token, gameId: game.id, source: 'launcher' } },
+      })
     }
 
-    const onMarket = () => showToast('应用商店（后续接入）')
-    const onSearch = () => showToast('搜索（后续接入）')
-    const onSettings = () => router.push({ name: 'settings' })
-    const onCast = () => router.push({ name: 'casting', params: { source: '手机' } })
+    const onSearch = () => showToast('搜索待接入')
 
-    // 应用图标：img 直接加载远程 URL（Hippy Image 支持 http，web-cli DevProxy 会把跨域 img
-    // 改写成 /proxy/... 由 DevServer 转发；浏览器 HTTP 缓存（ETag）兜底）。加载失败 → glyph。
-    // 注意：不能用 data: URL（Hippy Image 会置空 src），也不能 fetch 预取后切 data URL
-    // （会把正在加载的远程请求取消 → DevTools 显示「已取消」→ 图标空白）。
-    const iconFailed = ref<Record<string, boolean>>({})
-
-    const onIconError = (app: AppItem) => {
-      iconFailed.value[app.pkg || ''] = true
-    }
-
-    // 从 web-runtime 的 ProcessBridgeModule 读取真实 DLNA 广播设备名（Rust 环境经
-    // window.__get_invoke() 转调 desktop-runtime 的 getDlnaName 命令），读取失败保留默认值。
-    const loadDeviceName = async () => {
+    /** 读取真实 DLNA 广播设备名；成功即视为投屏接收就绪 */
+    const loadDeviceState = async () => {
       try {
         const name = await Native.callNativeWithPromise('ProcessBridgeModule', 'getDlnaName')
-        if (name) deviceName.value = name
+        if (name) {
+          deviceName.value = name
+          dlnaReady.value = true
+        }
       } catch (e) {
-        // 读取失败保留默认值
+        // 读取失败保留默认值（web/桌面未接原生桥时走这里）
       }
     }
 
     onMounted(() => {
       tickClock()
-      clockTimer = setInterval(tickClock, 1000 * 20)
-      loadDeviceName()
+      clockTimer = setInterval(tickClock, 1000 * 30)
+      loadDeviceState()
     })
     onUnmounted(() => {
       clearInterval(clockTimer)
@@ -208,320 +166,58 @@ export default defineComponent({
     })
 
     return {
-      rootRef,
-      deviceName,
-      clock,
-      toast,
-      recent,
-      allApps,
-      onIconError,
-      iconFailed,
-      onFocus,
-      onOpenApp,
-      onMarket,
-      onSearch,
-      onSettings,
-      onCast,
+      view, deviceName, clock, date, dlnaReady, toast,
+      railStatus, hints, brandline,
+      onNav, onCast, onOpenApp, onOpenGame, onSearch,
     }
   },
 })
 </script>
 
 <style scoped>
+/* 样式全部落在 QuickTVUI / Hippy 支持的 CSS 子集内：
+   无 CSS 变量 / gap / grid / % / auto / radial-gradient / transition；
+   padding·margin 不用多值简写（末值非 0 会丢值） */
+
 .launcher-root {
   position: absolute;
   left: 0;
   top: 0;
   width: 1920px;
   height: 1080px;
-  background: #0b1220;
+  background-color: #0b101e;
   overflow: hidden;
 }
-.bg {
+
+/* 底部提示条容器：设计稿 y=1008，高 72（1080 底边贴齐） */
+.hint-wrap {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(1200px 700px at 80% -10%, rgba(91, 140, 255, 0.18), transparent 60%),
-    radial-gradient(900px 600px at 0% 110%, rgba(124, 92, 255, 0.16), transparent 60%),
-    linear-gradient(180deg, #0d1426 0%, #0a0f1c 100%);
-}
-.bg-glow {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 1100px;
-  height: 1100px;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(124, 92, 255, 0.10), transparent 60%);
-  pointer-events: none;
+  left: 132px;
+  top: 1008px;
+  width: 1788px;
+  height: 72px;
 }
 
-/* 状态栏 */
-.status-bar {
+.toast-wrap {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 1920px;
-  height: 96px;
+  left: 132px;
+  top: 872px;
+  width: 1788px;
   display: flex;
   flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  padding-left: 60px;
-  padding-right: 60px;
-  box-sizing: border-box;
-}
-.sb-left {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-.brand {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-right: 24px;
-}
-.brand-mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #7c5cff, #5b8cff);
-  color: #fff;
-  font-size: 26px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(124, 92, 255, 0.45);
-  margin-right: 14px;
-}
-.brand-text {
-  font-size: 32px;
-  font-weight: 700;
-  color: #eaf0ff;
-  letter-spacing: 2px;
-}
-.device-name {
-  font-size: 26px;
-  color: #9fb0d0;
-  padding-left: 24px;
-  border-left: 2px solid rgba(255, 255, 255, 0.12);
-}
-.sb-right {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-.cast-ready {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-right: 28px;
-}
-.cast-ready .dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #38ef7d;
-  box-shadow: 0 0 12px #38ef7d;
-  margin-right: 10px;
-}
-.cast-ready-text {
-  font-size: 24px;
-  color: #38ef7d;
-}
-.wifi {
-  font-size: 24px;
-  color: #9fb0d0;
-  margin-right: 28px;
-}
-.clock {
-  font-size: 28px;
-  color: #eaf0ff;
-  font-variant-numeric: tabular-nums;
-  min-width: 76px;
-  text-align: right;
 }
 
-/* 主体 */
-.body {
-  position: absolute;
-  left: 0;
-  top: 96px;
-  width: 1920px;
-  height: 852px;
-  padding: 24px 60px 0;
-  box-sizing: border-box;
-}
-.section {
-  margin-bottom: 28px;
-}
-.section-title {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  font-size: 30px;
-  font-weight: 700;
-  color: #eaf0ff;
-  margin-bottom: 18px;
-}
-.section-title .bar {
-  width: 8px;
-  height: 30px;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #7c5cff, #5b8cff);
-  margin-right: 14px;
-}
-.st-text {
-  font-size: 30px;
-  font-weight: 700;
-  color: #eaf0ff;
-}
-.recent-row {
-  display: flex;
-  flex-direction: row;
-}
-.app-grid {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-.app-card {
-  width: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 0;
-  border-radius: 18px;
-  transition: transform 0.15s ease;
-}
-.app-card.recent {
-  margin-right: 26px;
-}
-.app-card.grid {
-  margin-right: 30px;
-  margin-bottom: 26px;
-}
-.app-card[focused],
-.app-card:focus {
-  transform: scale(1.08);
-}
-.app-icon {
-  width: 110px;
-  height: 110px;
-  border-radius: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-}
-.app-icon .glyph {
-  font-size: 46px;
-  font-weight: 800;
-  color: #fff;
-}
-.app-icon-img {
-  width: 110px;
-  height: 110px;
-  border-radius: 26px;
-  object-fit: cover;
-  display: block;
-}
-.app-card[focused] .app-icon,
-.app-card:focus .app-icon {
-  box-shadow: 0 0 0 5px rgba(124, 92, 255, 0.55), 0 14px 30px rgba(124, 92, 255, 0.45);
-}
-.app-name {
-  font-size: 24px;
-  color: #c7d2ea;
-  margin-top: 14px;
-}
-
-/* 底部 dock */
-.dock {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 1920px;
-  height: 132px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding-left: 60px;
-  padding-right: 60px;
-  box-sizing: border-box;
-  background: linear-gradient(180deg, rgba(10, 15, 28, 0), rgba(10, 15, 28, 0.92) 55%);
-}
-.dock-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 110px;
-  height: 96px;
-  border-radius: 18px;
-  transition: transform 0.15s ease;
-  margin-right: 22px;
-}
-.dock-item[focused],
-.dock-item:focus {
-  transform: scale(1.06);
-  background: rgba(124, 92, 255, 0.16);
-}
-.dock-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.10);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.dock-icon .glyph {
-  font-size: 28px;
-  font-weight: 700;
-  color: #eaf0ff;
-}
-.dock-icon.cast {
-  background: linear-gradient(135deg, #7c5cff, #5b8cff);
-  box-shadow: 0 8px 20px rgba(124, 92, 255, 0.5);
-}
-.dock-text {
-  font-size: 22px;
-  color: #c7d2ea;
-  margin-top: 8px;
-}
-.dock-spacer {
-  flex: 1;
-}
-.cast-hint {
-  font-size: 24px;
-  color: #9fb0d0;
-  margin-right: 10px;
-}
-.cast-btn {
-  width: 170px;
-}
-
-/* 轻提示 */
 .toast {
-  position: absolute;
-  left: 50%;
-  bottom: 170px;
-  transform: translateX(-50%);
-  background: rgba(20, 28, 48, 0.95);
-  color: #eaf0ff;
-  font-size: 26px;
+  padding-left: 34px;
+  padding-right: 34px;
   padding-top: 16px;
   padding-bottom: 16px;
-  padding-left: 36px;
-  padding-right: 36px;
-  border-radius: 14px;
-  border: 1px solid rgba(124, 92, 255, 0.4);
+  border-radius: 18px;
+  background-color: rgba(19, 23, 48, 0.94);
+  border-width: 1px;
+  border-color: rgba(251, 97, 90, 0.42);
 }
-.toast span {
-  font-size: 26px;
-  color: #eaf0ff;
-}
+
+.toast-text { font-size: 24px; color: #e8edf5; }
 </style>

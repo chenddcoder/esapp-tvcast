@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>tvcast P0 效果镜像（1920×1080）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #05070d; overflow: hidden; }
+  #viewport { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #stage {
+    position: relative; width: 1920px; height: 1080px; background: #0b101e;
+    transform-origin: center center; overflow: hidden;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    color: #e8edf5; flex: none;
+  }
+  .abs { position: absolute; }
+  .flex { display: flex; }
+  .col { flex-direction: column; }
+  .ctr { align-items: center; }
+  .between { justify-content: space-between; }
+  .grow { flex: 1; }
+
+  /* ---------- 导航轨 ---------- */
+  #rail {
+    left: 0; top: 0; width: 132px; height: 1080px; background: #0f1428;
+    border-right: 1px solid #1c2440; align-items: center;
+  }
+  #brand { width: 62px; height: 62px; margin-top: 30px; margin-bottom: 36px; border-radius: 20px;
+    background: #fb615a; align-items: center; justify-content: center; }
+  #brand img { width: 32px; height: 32px; }
+  .nav-item { position: relative; width: 100px; height: 88px; margin-bottom: 6px; border-radius: 16px;
+    flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+  .nav-item .ind { position: absolute; left: -14px; top: 22px; width: 4px; height: 44px;
+    border-radius: 999px; background: #e8edf5; display: none; }
+  .nav-item .ico { width: 30px; height: 30px; margin-bottom: 9px; }
+  .nav-item .lbl { font-size: 17px; font-weight: 500; color: #8194a4; }
+  .nav-item.on { background: rgba(30, 35, 60, 0.88); }
+  .nav-item.on .ind { display: block; }
+  .nav-item.on .lbl { font-weight: 600; color: #e8edf5; }
+  #rail-foot { left: 0; bottom: 30px; width: 132px; justify-content: center; }
+  #rail-foot .pill { height: 46px; padding: 0 16px; border-radius: 12px;
+    background: rgba(30, 35, 60, 0.88); border: 1px solid #1c2440;
+    align-items: center; justify-content: center; font-size: 17px; }
+
+  /* ---------- 主区 ---------- */
+  #main { left: 132px; top: 0; width: 1788px; height: 1080px; flex-direction: column; }
+  .topbar { width: 1788px; height: 104px; padding: 0 64px; border-bottom: 1px solid #1c2440;
+    align-items: center; justify-content: space-between; }
+  .tb-left, .tb-right { align-items: center; }
+  .device-name { font-size: 27px; font-weight: 600; }
+  .pill { height: 52px; margin-left: 12px; padding: 0 23px; border-radius: 999px;
+    background: rgba(19, 23, 48, 0.88); border: 1px solid #1c2440; align-items: center; }
+  .pill img { width: 20px; height: 20px; margin-right: 11px; }
+  .pill .txt { font-size: 21px; color: #8194a4; }
+  .pill .dot { width: 11px; height: 11px; border-radius: 999px; background: #61cb7c; margin-right: 11px; }
+  .clock { font-size: 48px; font-weight: 600; }
+  .date { font-size: 21px; color: #8194a4; margin-left: 26px; }
+
+  .body { width: 1788px; padding: 32px 64px 0 64px; flex-direction: column; }
+
+  /* 首页 */
+  .hero-row { width: 1660px; }
+  #hero { position: relative; width: 1034px; height: 455px; border-radius: 24px;
+    border: 1px solid #1c2440; background: #0d1425; overflow: hidden;
+    flex-direction: column; justify-content: flex-end; }
+  .ly { position: absolute; left: 0; top: 0; width: 1034px; height: 455px; }
+  .ly.warm { background: linear-gradient(215deg, rgba(251,97,90,0.32), rgba(11,16,30,0)); }
+  .ly.left { background: linear-gradient(90deg, rgba(9,13,26,0.94), rgba(9,13,26,0)); }
+  .ly.bottom { background: linear-gradient(0deg, rgba(9,13,26,0.88), rgba(9,13,26,0)); }
+  .hero-body { position: relative; width: 482px; padding: 44px; }
+  .eyebrow { font-size: 19px; color: #8194a4; letter-spacing: 2.66px; }
+  .hero-title { font-size: 44px; font-weight: 600; margin-top: 20px; }
+  .hero-sub { font-size: 22px; color: #8194a4; margin-top: 16px; }
+  .cta { margin-top: 26px; width: 211px; height: 72px; border-radius: 16px; background: #fb615a;
+    align-items: center; justify-content: center; }
+  .cta img { width: 26px; height: 26px; margin-right: 12px; }
+  .cta span { font-size: 25px; font-weight: 600; color: #fff9f8; }
+
+  .panel { width: 600px; height: 455px; margin-left: 26px; padding: 33px; border-radius: 24px;
+    background: #131730; border: 1px solid #1c2440; flex-direction: column; }
+  .panel-title { font-size: 26px; font-weight: 600; }
+  .rows { margin-top: 20px; flex-direction: column; }
+  .row { height: 84px; align-items: center; }
+  .row.divided { height: 85px; border-top: 1px solid #1c2440; }
+  .row-ico { width: 52px; height: 52px; border-radius: 14px; background: rgba(30,35,60,0.88);
+    align-items: center; justify-content: center; }
+  .row-ico img { width: 26px; height: 26px; }
+  .row-name { width: 308px; margin-left: 16px; font-size: 23px; font-weight: 500; }
+  .row-state { align-items: center; }
+  .row-state .dot { width: 9px; height: 9px; border-radius: 999px; background: #61cb7c; margin-right: 10px; }
+  .state { font-size: 21px; }
+  .state.muted { color: #8194a4; }
+  .note { height: 50px; padding-top: 20px; border-top: 1px solid #1c2440; align-items: center; }
+  .note span { font-size: 21px; color: #8194a4; }
+
+  .section { width: 1660px; margin-top: 36px; }
+  .sec-head { height: 48px; align-items: center; justify-content: space-between; }
+  .sec-title { font-size: 34px; font-weight: 600; }
+  .sec-link { align-items: center; font-size: 23px; font-weight: 500; color: #8194a4; }
+  .sec-link .arw { font-size: 26px; margin-left: 10px; }
+  .tiles { width: 1685px; margin-top: 24px; flex-wrap: wrap; }
+
+  .tile { border-radius: 20px; padding: 12px 8px 0 8px; flex-direction: column; align-items: center;
+    cursor: pointer; }
+  .tile.recent { width: 185px; height: 272px; margin-right: 25px; }
+  .tile.grid { width: 185px; height: 212px; margin: 0 24px 32px 0; }
+  .slot { width: 148px; height: 148px; border-radius: 33px; align-items: center; justify-content: center; }
+  .slot span { font-size: 62px; font-weight: 800; color: #e8edf5; }
+  .tile .name { margin-top: 10px; font-size: 26px; font-weight: 600; }
+  .tile .meta { margin-top: 12px; font-size: 21px; color: #8194a4; }
+
+  /* 全部应用 */
+  .page-title { font-size: 36px; font-weight: 600; }
+  .page-count { font-size: 21px; color: #8194a4; margin-left: 18px; }
+  .search { width: 480px; height: 60px; padding: 0 23px; border-radius: 16px;
+    background: rgba(19,23,48,0.88); border: 1px solid #1c2440; align-items: center; }
+  .search img { width: 24px; height: 24px; margin-right: 14px; }
+  .search span { font-size: 21px; color: #8194a4; }
+  .chips { width: 1660px; height: 60px; }
+  .chip { height: 60px; margin-right: 14px; border-radius: 999px; background: #0f1428;
+    border: 1px solid #1c2440; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 500; color: #8194a4; cursor: pointer; }
+  .chip.on { background: rgba(30,35,60,0.88); border-color: rgba(232,237,245,0.34);
+    font-weight: 600; color: #e8edf5; }
+  .grid { width: 1684px; margin-top: 36px; flex-wrap: wrap; }
+
+  #hintbar { left: 132px; top: 1008px; width: 1788px; height: 72px; padding: 0 64px;
+    border-top: 1px solid #1c2440; align-items: center; }
+  .hint { align-items: center; margin-right: 36px; }
+  .kbd { height: 35px; padding: 0 10px; margin-right: 10px; border-radius: 8px;
+    background: rgba(30,35,60,0.88); border: 1px solid #1c2440;
+    align-items: center; justify-content: center; font-size: 17px; }
+  .hint .lbl { font-size: 21px; color: #8194a4; }
+  .brandline { font-size: 17px; color: #8194a4; letter-spacing: 1.02px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="stage" class="abs" style="position:relative">
+
+    <div id="rail" class="abs flex col">
+      <div id="brand" class="flex">
+        <img src="https://www.chenddcoder.cn/upload/cast-icon.svg" alt="" />
+      </div>
+      <div class="nav-item on flex" data-view="home">
+        <div class="ind"></div>
+        <img class="ico" src="https://www.chenddcoder.cn/upload/nav-home-on.svg" alt="" />
+        <span class="lbl">首页</span>
+      </div>
+      <div class="nav-item flex" data-view="apps">
+        <div class="ind"></div>
+        <img class="ico" src="https://www.chenddcoder.cn/upload/nav-apps.svg" alt="" />
+        <span class="lbl">全部应用</span>
+      </div>
+      <div class="nav-item flex">
+        <img class="ico" src="https://www.chenddcoder.cn/upload/nav-cast.svg" alt="" />
+        <span class="lbl">投屏</span>
+      </div>
+      <div class="nav-item flex">
+        <img class="ico" src="https://www.chenddcoder.cn/upload/nav-settings.svg" alt="" />
+        <span class="lbl">设置</span>
+      </div>
+      <div id="rail-foot" class="abs flex">
+        <div class="pill flex">待投屏</div>
+      </div>
+    </div>
+
+    <div id="main" class="abs flex">
+      <div id="view-home">
+        <div class="topbar flex">
+          <div class="tb-left flex">
+            <span class="device-name">投屏显象_00.00</span>
+            <div class="pill flex">
+              <img src="https://www.chenddcoder.cn/upload/wifi-icon.svg" alt="" />
+              <span class="txt">已连接</span>
+            </div>
+            <div class="pill flex"><div class="dot"></div><span class="txt">投屏就绪</span></div>
+          </div>
+          <div class="tb-right flex">
+            <span class="clock">21:40</span>
+            <span class="date">9月12日 · 周六</span>
+          </div>
+        </div>
+        <div class="body flex">
+          <div class="hero-row flex">
+            <div id="hero" class="flex">
+              <div class="ly" style="background: linear-gradient(160deg, #1b2440, #0d1425)"></div>
+              <div class="ly warm"></div>
+              <div class="ly left"></div>
+              <div class="ly bottom"></div>
+              <div class="hero-body">
+                <div class="eyebrow">等待投屏</div>
+                <div class="hero-title">还没有投屏记录</div>
+                <div class="hero-sub">手机点投屏，画面就出现在这里</div>
+                <div class="cta flex">
+                  <img src="https://www.chenddcoder.cn/upload/cast-icon.svg" alt="" />
+                  <span>开始投屏</span>
+                </div>
+              </div>
+            </div>
+            <div class="panel flex">
+              <span class="panel-title">可投屏设备</span>
+              <div class="rows flex">
+                <div class="row flex">
+                  <div class="row-ico flex"><img src="https://www.chenddcoder.cn/upload/nav-tv.svg" alt="" /></div>
+                  <span class="row-name">投屏显象_00.00</span>
+                  <div class="row-state flex"><div class="dot"></div><span class="state">在线</span></div>
+                </div>
+                <div class="row divided flex">
+                  <div class="row-ico flex"><img src="https://www.chenddcoder.cn/upload/nav-phone.svg" alt="" /></div>
+                  <span class="row-name">手机投屏</span>
+                  <span class="state muted">等待接入</span>
+                </div>
+              </div>
+              <div class="grow"></div>
+              <div class="note flex"><span>让设备接入同一个 Wi-Fi，就能把画面投到这台电视上。</span></div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="sec-head flex">
+              <span class="sec-title">最近打开</span>
+              <div class="sec-link flex"><span>全部应用</span><span class="arw">›</span></div>
+            </div>
+            <div class="tiles flex" id="recent"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-apps" class="hidden">
+        <div class="topbar flex">
+          <div class="tb-left flex">
+            <span class="page-title">全部应用</span>
+            <span class="page-count">共 24 个应用</span>
+          </div>
+          <div class="tb-right flex">
+            <div class="search flex">
+              <img src="https://www.chenddcoder.cn/upload/search-icon.svg" alt="" />
+              <span>搜索应用名称</span>
+            </div>
+          </div>
+        </div>
+        <div class="body flex">
+          <div class="chips flex" id="chips"></div>
+          <div class="grid flex" id="grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="hintbar" class="abs flex">
+      <div class="hint flex"><div class="kbd flex">↑ ↓ ← →</div><span class="lbl">移动焦点</span></div>
+      <div class="hint flex"><div class="kbd flex">确定</div><span class="lbl" id="hint-open">打开</span></div>
+      <div class="hint flex"><div class="kbd flex">返回</div><span class="lbl">上一层</span></div>
+      <div class="grow"></div>
+      <span class="brandline" id="brandline">客厅投屏中心 · HOME</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  var APPS = [
+    ['哔哩哔哩','哔','#ff8fb1','#e8386f','影音'],['爱奇艺','爱','#5ed77a','#159c46','影音'],
+    ['腾讯视频','腾','#62b6ff','#1667d6','影音'],['优酷','优','#6fd8ff','#1a9fd4','影音'],
+    ['芒果TV','芒','#ffc25c','#f2820c','影音'],['YouTube','Y','#ff6b6b','#cc2222','影音'],
+    ['Netflix','N','#ff7a7a','#b81c1c','影音'],['Disney+','D','#8fa4ff','#3b4fd8','影音'],
+    ['Prime Video','P','#7fd1ff','#1b6fc4','影音'],['Spotify','S','#7ee0a0','#1db954','音乐'],
+    ['Apple Music','A','#ff8fa3','#e0355f','音乐'],['QQ 音乐','Q','#7fd8c0','#12a37a','音乐'],
+    ['网易云音乐','网','#ff8080','#d22b2b','音乐'],['抖音','抖','#7fe8e0','#17c3c3','社交'],
+    ['快手','快','#ffb27a','#f26a12','社交'],['小红书','小','#ff9aa6','#e03146','社交'],
+    ['微博','博','#ffb35c','#e8801f','社交'],['微信','微','#86e07a','#25a72c','社交'],
+    ['王者荣耀','王','#ffd166','#d99413','游戏'],['原神','原','#9fd7ff','#2f7fd0','游戏'],
+    ['和平精英','和','#ffb08a','#d95716','游戏'],['钉钉','钉','#6fb7ff','#1765d1','工具'],
+    ['腾讯会议','会','#7fc7ff','#1a76d2','工具'],['高德地图','高','#8fd0ff','#1f7fd0','工具']
+  ];
+  var RECENT = ['哔哩哔哩','抖音','网易云音乐','腾讯视频','Spotify','爱奇艺','YouTube','Netflix'];
+  var CATS = ['影音','音乐','社交','游戏','工具'];
+  var CAT = { '影音':'影音', '音乐':'音乐', '社交':'社交', '游戏':'游戏', '工具':'工具' };
+
+  function tile(a, variant) {
+    var d = document.createElement('div');
+    d.className = 'tile ' + variant + ' flex';
+    d.innerHTML = '<div class="slot flex" style="background: linear-gradient(145deg,' + a[2] + ',' + a[3] + ')">' +
+      '<span>' + a[1] + '</span></div><div class="name">' + a[0] + '</div>' +
+      (variant === 'recent' ? '<div class="meta">' + a[4] + '</div>' : '');
+    return d;
+  }
+  var byName = {};
+  APPS.forEach(function (a) { byName[a[0]] = a; });
+
+  RECENT.forEach(function (n) { if (byName[n]) document.getElementById('recent').appendChild(tile(byName[n], 'recent')); });
+
+  var activeCat = 'all';
+  function renderChips() {
+    var wrap = document.getElementById('chips');
+    wrap.innerHTML = '';
+    var list = [{ k: 'all', label: '全部', n: APPS.length }].concat(CATS.map(function (c) {
+      return { k: c, label: c, n: APPS.filter(function (a) { return a[4] === c; }).length };
+    }));
+    list.forEach(function (c) {
+      var el = document.createElement('div');
+      el.className = 'chip flex' + (c.k === activeCat ? ' on' : '');
+      el.style.width = (c.k === 'all' ? 136 : 125) + 'px';
+      el.textContent = c.label + c.n;
+      el.onclick = function () { activeCat = c.k; renderChips(); renderGrid(); };
+      wrap.appendChild(el);
+    });
+  }
+  function renderGrid() {
+    var wrap = document.getElementById('grid');
+    wrap.innerHTML = '';
+    APPS.filter(function (a) { return activeCat === 'all' || a[4] === activeCat; })
+      .forEach(function (a) { wrap.appendChild(tile(a, 'grid')); });
+  }
+  renderChips();
+  renderGrid();
+
+  var ICON_MUTED = { home: 'nav-home', apps: 'nav-apps', cast: 'nav-cast', settings: 'nav-settings' };
+  var BASE = 'https://www.chenddcoder.cn/upload/';
+
+  document.querySelectorAll('.nav-item').forEach(function (el) {
+    el.onclick = function () {
+      var v = el.getAttribute('data-view');
+      if (!v) return;
+      document.querySelectorAll('.nav-item').forEach(function (n) {
+        var key = n.getAttribute('data-view');
+        var on = n === el;
+        n.classList.toggle('on', on);
+        var img = n.querySelector('.ico');
+        if (key && img) img.src = BASE + ICON_MUTED[key] + (on ? '-on' : '') + '.svg';
+      });
+      document.getElementById('view-home').classList.toggle('hidden', v !== 'home');
+      document.getElementById('view-apps').classList.toggle('hidden', v !== 'apps');
+      document.getElementById('brandline').textContent = '客厅投屏中心 · ' + (v === 'home' ? 'HOME' : 'APPS');
+      document.getElementById('hint-open').textContent = v === 'home' ? '打开' : '打开 / 进入搜索';
+    };
+  });
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    document.getElementById('stage').style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+</script>
+</body>
+</html>

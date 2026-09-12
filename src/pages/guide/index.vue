@@ -14,7 +14,7 @@
           <div class="qr" :focusable="false">
             <span v-for="(c, i) in qrCells" :key="i"
                   class="qr-cell" :focusable="false"
-                  :style="{ backgroundColor: c ? '#0b1220' : 'transparent' }"></span>
+                  :style="{ backgroundColor: c ? '#0b101e' : 'transparent' }"></span>
           </div>
           <span class="qr-tip" :focusable="false">微信 / 相机扫码连接</span>
         </div>
@@ -178,7 +178,7 @@ export default defineComponent({
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7c5cff, #5b8cff);
+  background: #fb615a;
   color: #fff;
   font-size: 26px;
   font-weight: 800;
@@ -224,7 +224,7 @@ export default defineComponent({
   padding-left: 44px;
   padding-right: 44px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #7c5cff, #5b8cff);
+  background: #fb615a;
   color: #fff;
   font-size: 28px;
   font-weight: 700;

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="x5JdPOeYukkZ5zFn1612tW">
+<head data-page-node-id="TBwVMhbNm3ZNkF1JoFmqS2">
+<meta charset="utf-8" data-page-node-id="wXmE4SfBrUwVrNmVK4sATO" />
+<title>投屏显象 · 首页重设计原型（快应用可实现版）</title>
+<link rel="stylesheet" href="./launcher-home.css" data-page-node-id="wumgrCs0rzj9gQl94MuuYs" />
+</head>
+<body data-page-node-id="6kLgFbn6OADZJmwSv9F8ln">
+
+<div class="viewport" id="viewport" data-page-node-id="G1rrdpMpOW9tDJOL9WRwCW">
+  <div class="screen" id="screen" data-page-node-id="GWryQJjB2mskBADdw1tVa3">
+    <div class="glow-top" data-page-node-id="zCAFvWanZUXNhkUhHUQRyJ"></div>
+    <div class="glow-bottom" data-page-node-id="d6qmRtC4QqCzElOxRh3793"></div>
+
+    <div class="statusbar" data-page-node-id="CDYWLafgEjVRDeCBAxruU7">
+      <div class="sb-left" data-page-node-id="mRHYEL3ofM2YVDWVlc5QMw">
+        <div class="brand-mark" data-page-node-id="jrk1HDte6yBdBVEWxen4kF"><img src="./icons/cast.svg" class="i28" alt="" data-page-node-id="kCDFGqFatRpOPoJuuKJv99" /></div>
+        <span class="brand-name" data-page-node-id="JxxVQDk2XzHzNTh8iK0tQp">投屏显象</span>
+        <div class="sb-sep" data-page-node-id="WLYFcyaZ6wGJT3DOAvhg98"></div>
+        <span class="device" id="deviceName" data-page-node-id="ViMuXH0CSeMFdU9cSyDjN5">投屏显象_00.00</span>
+      </div>
+      <div class="sb-right" data-page-node-id="0zyHF6HyZbKBWj8y7wUfpK">
+        <div class="pill" id="statePill" data-page-node-id="Ik6HhiHWyMv2pVTNGaydgm">
+          <div class="dot" data-page-node-id="sKhqHnSJySBfEWW5YLNJZq"></div><span class="pill-text" id="stateText" data-page-node-id="rxl2hFqTWoyYTd1RFDkaKe">可投屏</span>
+        </div>
+        <div class="pill pill-icon" data-page-node-id="WXp4icAMxCAFLDQsFDeucp"><img src="./icons/wifi.svg" class="i24" alt="" data-page-node-id="YP1G25EqDTdYPD9VA675pl" /></div>
+        <span class="clock" id="clock" data-page-node-id="YMJp9qzEZ3luAsA9KPEXJO">00:00</span>
+      </div>
+    </div>
+
+    <div class="stage" data-page-node-id="J2NZDLbxRBRH7p2dINw4Xj">
+      <div class="sec" data-page-node-id="nulKA1R3ttgjnFazl6KjQB">
+        <div class="panel">
+          <div class="sec-title" data-page-node-id="YvjLyumEsuGF8MDEbLQoNn"><div class="tick" data-page-node-id="RrAYkeDHeonaLQcY2W4xD5"></div><span class="sec-text" data-page-node-id="isImlmUGjTE7XKvHdpTD5k">最近打开</span></div>
+          <div class="row" id="recentRow" data-page-node-id="aUmJpCsoGT9kdr85TEENmD"></div>
+        </div>
+      </div>
+
+      <div class="panel" data-page-node-id="IlNcnB7dNDQUaeQTgfOOh6">
+        <div class="sec-title" data-page-node-id="TFIGLUWOeyRT2rJXfnFqFu"><div class="tick" data-page-node-id="gIJVF9gQVEHyo7ROjM58ra"></div><span class="sec-text" data-page-node-id="1kCJ6LU0BiWdJvCMtNBUXq">全部应用</span></div>
+        <div class="grid" id="appGrid" data-page-node-id="eOhH7Lew16X9E9eauprmPJ"></div>
+      </div>
+    </div>
+
+    <div class="dock" data-page-node-id="DCTsYuxmJkVVHmakgzGPR7">
+      <div class="dock-item" data-row="2" data-col="0" data-act="应用商店" data-page-node-id="2A7qwQ0aPhmX77CWtHUTGZ">
+        <img src="./icons/store.svg" class="i22" alt="" data-page-node-id="JiHW3ZaLQUrFcA7HMhpoFP" /><span class="dtxt" data-page-node-id="O19tD1Qva6weussBUBrCvJ">应用商店</span>
+      </div>
+      <div class="dock-item" data-row="2" data-col="1" data-act="搜索" data-page-node-id="33UmWZdvAeGxIr2U9Hz28L">
+        <img src="./icons/search.svg" class="i22" alt="" data-page-node-id="ZtU0BYWf5f36ZGPk56CjUe" /><span class="dtxt" data-page-node-id="09ZM8f5rC7i962RyKtSGlD">搜索</span>
+      </div>
+      <div class="dock-item" data-row="2" data-col="2" data-act="设置" data-page-node-id="5q1wJOPvgTl6c3bmnLvECP">
+        <img src="./icons/settings.svg" class="i22" alt="" data-page-node-id="o9useruxNSv5iIepLq3WRJ" /><span class="dtxt" data-page-node-id="NKSWunQSc1BWSfkzQ0eV8P">设置</span>
+      </div>
+      <span class="hint" id="hint" data-page-node-id="9ALDbPQCHqxCK9lWFHby8j">同一 Wi-Fi 下，手机扫码即可投屏</span>
+      <div class="cta" data-row="2" data-col="3" data-act="开始投屏" data-page-node-id="O9h8h5r3yervJwCei2jeSN">
+        <img src="./icons/cast.svg" class="i28" alt="" data-page-node-id="fyeVEyijtC9VfHyVC4lTZA" /><span class="cta-txt" data-page-node-id="b5orUqSdv34CoTpewYLbxM">开始投屏</span>
+      </div>
+    </div>
+
+    <div class="toast-wrap" data-page-node-id="LVE7KWyAffA1lMhLLiNRwp">
+      <div class="toast" id="toast" data-page-node-id="I7MnM34y0sTO4YL1Xl599Z"><span id="toastText" data-page-node-id="JKFoCiMaaQQrxCjFIfCROI"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="notes" data-page-node-id="TlIvxCuuoHWe5PZvFq3rLN">
+  <h3 data-page-node-id="3Wpt2s5EJ7lME65AmEa4SC">原型说明 · 已按 QuickTVUI / Hippy 支持的 CSS 子集实现</h3>
+  <ul data-page-node-id="r70Ng0IIoBbuF7gfJ1qEMO">
+    <li data-page-node-id="I35a4X0zkSbNxDEFHCHRat"><b data-page-node-id="u6dFfmbLayjeskMWHsvjxN">操作</b>：方向键移动焦点，回车选中；点击右上角胶囊切换「可投屏 / 投屏中」。</li>
+    <li data-page-node-id="KspOejN0mDxDHltZxDzHL3"><b data-page-node-id="v8jv0BesQVWYexPzD9aL84">图标</b>：<code data-page-node-id="KIyMXo0pGE4hTyQ1Wp6jwf">proto/icons/*.svg</code> 共 13 个，原型用 img 加载（落地即 qt-image + 远端 SVG URL，失败兜底首字母）。</li>
+    <li data-page-node-id="DgfZ0pzAXac6OOuT0bicuj"><b data-page-node-id="EcexE1wPCjVpnrnEnNVl43">光晕</b>：radial-gradient 快应用不支持（现有首页的光晕其实没渲染出来），改用两个 linear-gradient 光带模拟。</li>
+    <li data-page-node-id="9ZgnGINTMIpadtPn1mA7dp"><b data-page-node-id="Ab8dfY6cWt1jzJ5awtHuqQ">玻璃感</b>：无 backdrop-filter，用 rgba 半透明底 + 1px 边框 + 顶部 1px 高光条模拟毛玻璃。</li>
+    <li data-page-node-id="vRJTib7SXEjgxhjmQsCRHW"><b data-page-node-id="qPY9TLml91RWRTPAbEBGPq">阴影</b>：单阴影 + 「容器比内容大 16px、内容绝对定位偏移」结构，兼容 Android 阴影容器遮挡模式。</li>
+    <li data-page-node-id="16vw290Xrn7m9tO4Y4RLus"><b data-page-node-id="ChoKZJ3q3nnYRZcZO7UTG4">焦点态</b>：原型用 class 模拟，落地用框架属性 focusScale / focusBorderColor / focusBorderWidth / focusBackgroundColor。</li>
+  </ul>
+  <div class="notes-actions" data-page-node-id="OBY6CRdlefqImTRcR296xq">
+    <button id="toggleState" data-page-node-id="Rm9EALdfuudWQof8gzVIiI">切换投屏状态</button>
+  </div>
+</div>
+
+<script src="./launcher-home.js"></script>
+</body>
+</html>
