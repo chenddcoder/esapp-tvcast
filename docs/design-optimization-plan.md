@@ -224,3 +224,50 @@ PASS  ④ 点游戏磁贴 → es_pkg 拉起 cn.chenddcoder.hongjian（且 token 
 ```
 
 注：该脚本的 staging 代理必须转发 `headers` + `body` —— 跨包解析要 POST `application/octet-stream` 的加密体到 `/api/app/resolve`，漏转发会以 404 失败（踩过一次，已对齐 `verify-apps-entry.cjs`）。
+
+### 8.5 投屏页（03）批 1 —— 视觉 + 信息层（2026-09-12）
+
+范围：批 1 = 设计项 1/2/3/6（双层 scrim、左上导播簇、右上信息胶囊、控制条图标化 + 实心 coral 停止 + 右栏只读信息卡）。不碰播放链路与按键契约。
+
+**改动（`src/pages/casting/index.vue`）**
+- 删除旧 source-bar、文本符号控制条（❚❚/▶/⏹/⌂ + 🔊/🔇 emoji）与重复的「返回主页」按钮。
+- 新增（全部套在 `<template v-if="!errorText">` 下，报错态不受影响）：
+  - `.scrim-top` 1920×300（linear-gradient 90deg）/ `.scrim-bottom` 1920×240（180deg）。
+  - `.head-cluster`：返回圆钮 72×72 + 「正在投屏」胶囊（绿点 `#61cb7c`）+ 34px 标题 + 来源行。
+  - `.info-pills`：分辨率胶囊（真实值，取不到时隐藏）+「已投屏 mm:ss」（1s 计时）。
+  - `.info-card` 420px 只读 5 行：标题 / 来源 / 分辨率 / 已投屏 / 连接方式（DLNA · Wi-Fi）。
+  - `.control-bar` 992×90（left 464 / bottom 44）：play 图标钮 + qt-seek-bar + 时间 + mute 图标钮 + 实心 coral「停止投屏」。
+- 分辨率为真实数据：`readVideoSize` **async** `await manager.getMediaMeta()`（兜底 player），`resolutionLabel` 映射 4K/1080P/720P/480P；`startSizePoll` 起播后 15s 内每秒探测一次。音量/全屏/上一集图标已备（`proto/gen-control-icons.cjs` → 10 个 SVG 已上传 `/upload/`），交互留批 2。
+
+**过程中固化两条 web-renderer 铁律（验收脚本首次 1/9 的根因）**
+1. **DOM 不保留业务 class 名**：`.casting-root`/`.scrim-top` 等选择器全部查不到，DOM 只剩 `controls`/`info` 等运行时类 → 自动化验收/诊断一律按 `[name="..."]` 属性定位（与 rail-*、tile-* 同一约定）。所有新 UI 元素已带 name。
+2. **`getMediaMeta()` 返回 Promise**：ESVideoPlayer/ESPlayerManager 的 getMediaMeta 经 callUIFunction 回调包装（patches.js L446），同步调用拿到 Promise 对象 → `meta.width` 是 NaN。一律 async/await（与 localStorage 异步坑同族，第三例）。
+
+**端到端验证** `scripts/verify-casting-ui.cjs`（staging + ACTION_DLNA 注入本地 720P 测试视频 `proto/fixtures/bigbuck-720.mp4`，截图 `docs/pen/p3-casting-batch1.png`）：9/9 通过 —— ACTION_DLNA 挂载 / 真实起播 / 双层 scrim 尺寸角度 / 返回钮+胶囊+标题 / 分辨率「720P · DLNA」+ 已投屏计时 / 信息卡 5 行 / 控制条 992×90+图标 / coral 停止+无旧按钮+seekbar / 点停止回 launcher。回归：verify-apps-entry 6/6、verify-games-tab 5/5。
+
+**批 2 待办**：音量条（volume-low/high 图标已备）、全屏、上一集（语义=重播本集，待定）、`casting/index.vue` 按职责拆文件（超 800 行硬阈值；改前回归多播放器实例/切集防抖/返回键）。批 3 可选：投屏 nav 落地态（二维码 + 本机信息）。
+
+### 8.6 控制层自动隐藏（2026-09-13）
+
+陈兄定的交互：**播放 5s 自动隐藏控制层，操作时再显示，显示后播放中仍 5s 隐藏**。
+
+实现（`src/pages/casting/index.vue`）：
+- 整层 UI（scrim/导播簇/信息胶囊/信息卡/控制条）包进 `.controls-layer` 全屏壳，`:style="{ opacity: controlsVisible ? 1 : 0 }"`。
+- 隐藏调度：`scheduleControlsHide()`（onPlayerPlaying 起算 5s，到点且仍在播放 → 隐藏）；`wakeControls()`（任意操作 → 显示 + 重新计时）；`showControlsSteady()`（暂停/停止/播完/出错 → 常显并取消计时）。
+- 唤醒入口：onKeyDown（**隐藏时任意键先唤醒并消费，防落到底层 launcher**，同时补一次 seekbar 聚焦）、root 点击（鼠标/触屏）、播放/静音按钮、onSeekStart/onSeekChanged/onSeekbarFocusChanged(true)。遥控契约不变：唤醒后左右=快进快退、OK=播放暂停、下=切集。
+
+**新铁律（第 4 条）**：web-renderer 对 div 的 **v-show（display:none）不生效**——隐藏日志已触发但 DOM 纹丝不动（Hippy 布局引擎强制 display）；**隐藏一律用 opacity**。另注意 `getComputedStyle(child).opacity` 读的是子元素自身值（恒 1），不继承父层隐藏——自动化断言要读 wrapper 的 opacity。
+
+验证：探针确认起播 5s 后 opacity 1→0；`verify-casting-ui.cjs` 扩到 **11/11**（新增 ⑩ 自动隐藏、⑪ 操作重现，测试视频置 loop 防播完强制显示干扰）；回归 verify-apps-entry 6/6、verify-games-tab 5/5。
+
+### 8.7 修复：左上导播簇被居中散开（2026-09-13）
+
+用户看截图发现标题/状态布局不对。诊断实锤两个问题：
+
+1. **web-renderer 把 `align-items: flex-start` 吞成 `center`**（计算样式实测 `alignItems: center`）→ head-cluster 里返回钮/胶囊被居中到 x=382、来源「手机」悬在 x=486。修法：head-cluster 弃用 flex column，改默认块级流（web=block 左对齐；Hippy div 默认纵向 flex+stretch 同样左起），行内排布只留给 head-row（row 的 align-items:center 是垂直居中，支持正常）。**这是第 5 条铁律：web-renderer 下不要用 `align-items: flex-start` 做左对齐。**
+2. **截图左上角贴边的小圆钮是 staging 宿主页（RuntimeController）body 直下的 48×48 悬浮返回钮**，不是 tvcast 的——真机不存在；验收脚本截图会话内用 CSS 隐藏以免混淆。
+
+修复后 rect：back(48,44,72×72)、pill(140,52)、title(48,136)、source(48,192)，全部左对齐；验收 ④ 增加「back/title/source 同左缘 x=48」断言，11/11 通过。
+
+### 8.8 收窄顶部 scrim + 移除投屏信息卡（2026-09-13）
+陈兄两处简化：① scrim-top 300→160（单行导播簇 44~116 恰好被覆盖，画面露出更多）；② 右栏「投屏信息」卡整体移除（标题/来源/分辨率/时长在左上单行与右上胶囊里都有，电视上信息重复且挡画面），模板+CSS+验收 ⑥ 一并清理。11/11 通过。

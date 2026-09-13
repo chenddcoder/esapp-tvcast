@@ -105,9 +105,8 @@ export default defineComponent({
       }
       if (key === 'settings') {
         router.push({ name: 'settings' })
-        return
       }
-      if (key === 'cast') onCast()
+      // 「投屏」导航项已移除（tokens.ts NAV_ITEMS）；投屏入口只剩首页 hero CTA。
     }
 
     /** 投屏入口：真正的内容由手机端推送（DMR 接收端无法自选内容） */

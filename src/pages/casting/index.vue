@@ -5,7 +5,7 @@
        焦点（对齐 xiaoyoucast：seekbar 聚焦后左右键=快进快退、OK=播放/暂停）。
        左右/OK/下键在捕获阶段拦截（等价于真机 onKeyDown 返回 true 阻断框架），
        防止焦点系统把按键移动/点击到底层页面元素。 -->
-  <div class="casting-root" ref="rootRef" :focusable="false">
+  <div class="casting-root" ref="rootRef" :focusable="false" @click="onRootClick">
     <!-- 投屏播放层：ESPlayerManager 管理 ESVideoPlayer（web 端 = HTML5 video） -->
     <ESPlayerManager
       ref="playerManagerRef"
@@ -37,54 +37,82 @@
       <span class="error-text" :focusable="false">{{ errorText }}</span>
     </div>
 
-    <!-- 顶部来源条 -->
-    <div class="source-bar" v-if="!errorText" :focusable="false">
-      <div class="live-dot" :focusable="false" :class="{ paused: !playing }"></div>
-      <span class="source-text" :focusable="false">{{ title || '投屏播放中' }}</span>
-      <span class="res-text" :focusable="false">{{ source }}</span>
-    </div>
+    <!-- 设计稿 03 屏：双层渐变 scrim（顶部 90deg / 底部 180deg，评审定稿）。
+         所有控制 UI 挂在 scrim 上，亮画面下可读。
+         控制层自动隐藏（2026-09-13）：播放中 5s 无操作整层隐藏；任意按键/点击/seek
+         交互唤醒；暂停/停止/错误时保持可见。
+         ⚠️ 隐藏用 opacity 而非 v-show：实测 web-renderer 对 div 的 v-show
+         （display:none）不生效（Hippy 布局引擎强制 display），opacity 跨运行时可靠。
+         隐藏期间按键全部被 onKeyDown 唤醒分支消费，不会落到不可见元素上。 -->
+    <template v-if="!errorText">
+      <div
+        class="controls-layer"
+        name="controlsLayer"
+        :style="{ opacity: controlsVisible ? 1 : 0 }"
+        :focusable="false"
+      >
+      <!-- name 属性必加：web-renderer 渲染的 DOM 不保留业务 class 名，
+           自动化验收/诊断一律按 [name=...] 定位（与导航轨/磁贴同一约定） -->
+      <div class="scrim-top" name="scrimTop" :focusable="false"></div>
+      <div class="scrim-bottom" name="scrimBottom" :focusable="false"></div>
 
-    <!-- 底部控制条：进度条用标准 qt-seek-bar 组件（quicktvui3，真机契约，
-         渲染 TVSeekBarViewComponent；web-renderer 由 QtSeekBar.js 模拟）。
-         遥控器交互对齐 xiaoyoucast：seekbar 初始聚焦 → 左右键长按快进/快退
-         （组件 startSeek 逐步进 + 系统 keydown 自动重复）、OK=播放/暂停、
-         下键=抖音切集、返回/Esc=断开。按钮仅鼠标/触屏使用（不参与遥控焦点）。 -->
-    <div class="control-bar" v-if="!errorText" :focusable="false">
-      <div class="ctrl-btn" :focusable="false" eventClick name="play" @click="onTogglePlay">
-        <span class="ctrl-icon" :focusable="false">{{ playing ? '❚❚' : '▶' }}</span>
-        <span class="ctrl-label" :focusable="false">{{ playing ? '暂停' : '播放' }}</span>
-      </div>
-      <div class="ctrl-btn" :focusable="false" eventClick name="mute" @click="onToggleMute">
-        <span class="ctrl-icon" :focusable="false">{{ muted ? '🔇' : '🔊' }}</span>
-        <span class="ctrl-label" :focusable="false">{{ muted ? '取消静音' : '静音' }}</span>
-      </div>
-
-      <!-- 进度条（seekbar 焦点目标，遥控器左右键快进/快退、OK 播放/暂停） -->
-      <div class="seekbar-wrap" :focusable="false">
-        <qt-seek-bar
-          ref="seekBarRef"
-          class="seek-bar"
-          name="seekbar"
-          eventFocus
-          :focusable="true"
-          @onSeekStart="onSeekStart"
-          @onSeekStop="onSeekStop"
-          @onSeekChanged="onSeekChanged"
-          @onFocusChanged="onSeekbarFocusChanged"
-        />
-        <span class="seek-time-text" :focusable="false">{{ progressText }} / {{ durationText }}</span>
+      <!-- 左上一行：返回圆钮 +「正在投屏」胶囊 + 标题 + 来源（2026-09-13 陈兄：
+           纵排三层太高，收成单行垂直居中；标题超宽省略号，不挤压右侧） -->
+      <div class="head-cluster" name="headCluster" :focusable="false">
+        <div class="back-btn" :focusable="false" eventClick name="castBack" @click="onStop">
+          <img class="back-ico" :src="icons.back" :focusable="false" />
+        </div>
+        <div class="live-pill" name="livePill" :focusable="false">
+          <div class="live-dot" :class="{ paused: !playing }" :focusable="false"></div>
+          <span class="live-text" :focusable="false">正在投屏</span>
+        </div>
+        <span class="cast-title" name="castTitle" :focusable="false">{{ title || '投屏播放中' }}</span>
+        <span class="cast-source" name="castSource" :focusable="false">{{ source }}</span>
       </div>
 
-      <div class="ctrl-spacer" :focusable="false"></div>
-      <div class="ctrl-btn stop" :focusable="false" eventClick name="stop" @click="onStop">
-        <span class="ctrl-icon" :focusable="false">⏹</span>
-        <span class="ctrl-label" :focusable="false">断开</span>
+      <!-- 右上信息胶囊（只放真实数据：分辨率取不到就整颗隐藏，不做假值） -->
+      <div class="info-pills" name="infoPills" :focusable="false">
+        <div class="pill" v-if="resolutionText" name="pillResolution" :focusable="false">
+          <span class="pill-text" :focusable="false">{{ resolutionText }} · DLNA</span>
+        </div>
+        <div class="pill" name="pillElapsed" :focusable="false">
+          <span class="pill-text" :focusable="false">已投屏 {{ elapsedText }}</span>
+        </div>
       </div>
-      <div class="ctrl-btn home" :focusable="false" eventClick name="home" @click="onBackHome">
-        <span class="ctrl-icon" :focusable="false">⌂</span>
-        <span class="ctrl-label" :focusable="false">返回主页</span>
+
+      <!-- 右栏「投屏信息」卡已移除（2026-09-13 陈兄：电视上信息重复且挡画面；
+           标题/来源/分辨率/时长在左上单行与右上胶囊里都有） -->
+
+      <!-- 控制条（设计稿 992×90 居中悬浮；遥控器契约不变：seekbar 聚焦 →
+           左右键快进/快退、OK 播放/暂停、下键切集；按钮仅鼠标/触屏用） -->
+      <div class="control-bar" name="controlBar" :focusable="false">
+        <div class="ctrl-btn" :focusable="false" eventClick name="play" @click="onTogglePlay">
+          <img class="ctrl-ico" :src="playing ? icons.pause : icons.play" :focusable="false" />
+        </div>
+        <div class="seekbar-wrap" :focusable="false">
+          <qt-seek-bar
+            ref="seekBarRef"
+            class="seek-bar"
+            name="seekbar"
+            eventFocus
+            :focusable="true"
+            @onSeekStart="onSeekStart"
+            @onSeekStop="onSeekStop"
+            @onSeekChanged="onSeekChanged"
+            @onFocusChanged="onSeekbarFocusChanged"
+          />
+          <span class="seek-time-text" :focusable="false">{{ progressText }} / {{ durationText }}</span>
+        </div>
+        <div class="ctrl-btn" :focusable="false" eventClick name="mute" @click="onToggleMute">
+          <img class="ctrl-ico" :src="muted ? icons.volumeMute : icons.volumeHigh" :focusable="false" />
+        </div>
+        <div class="stop-btn" :focusable="false" eventClick name="stop" @click="onStop">
+          <img class="ctrl-ico stop-ico" :src="icons.stop" :focusable="false" />
+          <span class="stop-text" :focusable="false">停止投屏</span>
+        </div>
       </div>
-    </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -103,7 +131,7 @@ import {
   getPendingPlay,
   DlnaPlayPayload,
 } from '../../tools/dlna-bridge'
-import { C } from '../../styles/tokens'
+import { C, ICON_BASE } from '../../styles/tokens'
 
 /**
  * 投屏播放宿主层（DLNA 接收端播放管理）。
@@ -170,6 +198,151 @@ export default defineComponent({
     const muted = ref(false)
     const loading = ref(true)
     const errorText = ref('')
+
+    // ---------- 批 1 UI 状态：分辨率胶囊 / 已投屏时长 / 图标 ----------
+    /** 真实分辨率文案（1080P / 720P / 4K）；取不到保持 ''，胶囊整体隐藏，不做假值 */
+    const resolutionText = ref('')
+    /** 已投屏时长（会话墙钟时间，从本层挂载起算） */
+    const elapsedText = ref('00:00')
+    const castStartAt = Date.now()
+    let elapsedTimer: any = -1
+    let sizeTimer: any = -1
+    let sizeTries = 0
+
+    const icons = {
+      back: `${ICON_BASE}/ctrl-back.svg`,
+      play: `${ICON_BASE}/ctrl-play.svg`,
+      pause: `${ICON_BASE}/ctrl-pause.svg`,
+      stop: `${ICON_BASE}/ctrl-stop.svg`,
+      volumeHigh: `${ICON_BASE}/ctrl-volume-high.svg`,
+      volumeMute: `${ICON_BASE}/ctrl-volume-mute.svg`,
+      volumeLow: `${ICON_BASE}/ctrl-volume-low.svg`,
+      prev: `${ICON_BASE}/ctrl-prev.svg`,
+      next: `${ICON_BASE}/ctrl-next.svg`,
+      fullscreen: `${ICON_BASE}/ctrl-fullscreen.svg`,
+    }
+
+    // ---------- 控制层自动隐藏（2026-09-13）：播放中 5s 无操作 → 整层隐藏 ----------
+    // 规则：
+    //  - 起播/恢复播放（onPlayerPlaying）起算 5s，到点且仍在播放 → controlsVisible=false；
+    //  - 任意用户操作（遥控按键/鼠标点击/seek 交互）→ wakeControls()：立即显示并重新计时；
+    //  - 暂停/停止/播完/出错时保持显示，不计时（onPlayerPaused 清定时器并强制显示）；
+    //  - 隐藏时焦点树随 display:none 摘除（v-show），唤醒后 requestFocus 把焦点还给
+    //    seekbar，遥控契约（左右=快进快退、OK=播放暂停、下=切集）不变。
+    const HIDE_DELAY_MS = 5000
+    const controlsVisible = ref(true)
+    let controlsHideTimer: any = -1
+
+    /** 播放中起算 5s 隐藏定时器（重复调用安全：先清旧定时器） */
+    const scheduleControlsHide = () => {
+      clearTimeout(controlsHideTimer)
+      controlsHideTimer = -1
+      if (!playing.value) return
+      controlsHideTimer = setTimeout(() => {
+        controlsHideTimer = -1
+        if (playing.value && !errorText.value) {
+          controlsVisible.value = false
+          console.log('[casting] 播放中 5s 无操作 → 隐藏控制层')
+        }
+      }, HIDE_DELAY_MS)
+    }
+
+    /** 用户操作唤醒：显示控制层 + 重新计时；refocus=true 时补一次 seekbar 聚焦
+     *  （opacity 方案下 seekbar 仍在焦点树，此项为兜底；隐藏期间按键全被
+     *  onKeyDown 唤醒分支消费，不会误触不可见元素） */
+    const wakeControls = (refocus = false) => {
+      controlsVisible.value = true
+      scheduleControlsHide()
+      if (refocus) {
+        setTimeout(() => {
+          const sb = seekBarRef.value
+          if (sb && typeof sb.requestFocus === 'function') {
+            try {
+              sb.requestFocus()
+            } catch (e) {}
+          }
+        }, 200)
+      }
+    }
+
+    /** 暂停/停止/播完/出错：保持显示并取消隐藏计时 */
+    const showControlsSteady = () => {
+      clearTimeout(controlsHideTimer)
+      controlsHideTimer = -1
+      controlsVisible.value = true
+    }
+
+    /** 鼠标/触屏点击画面任意处（含控制层空白区）= 用户操作，唤醒控制层 */
+    const onRootClick = () => {
+      wakeControls(false)
+    }
+
+    /**
+     * 读真实视频分辨率。
+     * 契约：ESVideoPlayer/ESPlayerManager 的 getMediaMeta() 返回 **Promise**
+     * （内部经 callUIFunction 回调包装，web 端由 IJKPlayerComponent 返回
+     * {duration, width, height}；真机由原生实现）。
+     * ⚠️ 不能同步读：拿到的是 Promise 对象，meta.width 是 NaN（与 localStorage
+     * 异步坑同族——同步读 Promise 一律拿不到业务值）。
+     * 全部防御性调用，拿不到返回 0 —— UI 侧以 '' 处理（隐藏胶囊），绝不编造。
+     */
+    const readVideoSize = async (): Promise<{ w: number; h: number }> => {
+      const manager: any = playerManagerRef.value
+      if (!manager) return { w: 0, h: 0 }
+      // ① manager 直读（内部委托当前播放器）
+      try {
+        if (typeof manager.getMediaMeta === 'function') {
+          const meta = await Promise.resolve(manager.getMediaMeta())
+          const w = Number(meta && meta.width)
+          const h = Number(meta && meta.height)
+          if (isFinite(w) && isFinite(h) && w > 0 && h > 0) return { w, h }
+        }
+      } catch (e) {}
+      // ② 兜底：player 实例的同名 Promise API
+      try {
+        const p = manager.getPlayer?.()
+        if (p && typeof p.getMediaMeta === 'function') {
+          const meta = await Promise.resolve(p.getMediaMeta())
+          const w = Number(meta && meta.width)
+          const h = Number(meta && meta.height)
+          if (isFinite(w) && isFinite(h) && w > 0 && h > 0) return { w, h }
+        }
+      } catch (e) {}
+      return { w: 0, h: 0 }
+    }
+
+    const resolutionLabel = (h: number): string => {
+      if (h >= 2160) return '4K'
+      if (h >= 1080) return '1080P'
+      if (h >= 720) return '720P'
+      if (h >= 480) return '480P'
+      return h > 0 ? `${h}P` : ''
+    }
+
+    /** 轮询分辨率（前 15s 每秒一次；loadedmetadata 后 getMediaMeta 才有值） */
+    const startSizePoll = () => {
+      stopSizePoll()
+      sizeTries = 0
+      sizeTimer = setInterval(async () => {
+        sizeTries++
+        const { h } = await readVideoSize()
+        if (h > 0) {
+          resolutionText.value = resolutionLabel(h)
+          stopSizePoll()
+        } else if (sizeTries >= 15) {
+          stopSizePoll()
+        }
+      }, 1000)
+    }
+    const stopSizePoll = () => {
+      clearInterval(sizeTimer)
+      sizeTimer = -1
+    }
+
+    /** 已投屏时长每秒刷新（会话级，不从换集重置） */
+    elapsedTimer = setInterval(() => {
+      elapsedText.value = fmtTime(Date.now() - castStartAt)
+    }, 1000)
     const curProgress = ref(-1) // 毫秒；初始 -1 保证首轮 pos=0 也上报（链路从 0 即有数据流）
     const curDuration = ref(0) // 毫秒
     const lastPositionReport = ref(0) // 上次 position 上报时间戳（节流）
@@ -265,6 +438,9 @@ export default defineComponent({
       loading.value = true
       errorText.value = ''
       isStopped = false
+      // 换集/重播：分辨率可能变化 → 清空并重新轮询（取不到继续隐藏胶囊）
+      resolutionText.value = ''
+      startSizePoll()
       // 换集/重播：重置进度基准（applyProgress 倒退保护不误伤新集从 0 起播）
       curProgress.value = -1
       // 换集/重播：重置下键防抖窗口——切集后第一下按键必生效，
@@ -522,6 +698,8 @@ export default defineComponent({
       //（web 端 ESPlayerManager 的 setProgressCallback 可能在播放器组件
       //  未就绪时错过设置 → 进度/时长不上报，DLNA 客户端进度条不动）。
       startProgressTimer()
+      // 播放中 5s 无操作自动隐藏控制层（从起播/恢复播放起算）
+      scheduleControlsHide()
     }
 
     const onPlayerPaused = () => {
@@ -532,12 +710,16 @@ export default defineComponent({
       // 同时上报 pause 让客户端 GetTransportInfo 显示 PAUSED_PLAYBACK。
       stopProgressTimer()
       sendRemoteEvent(DLNA_REMOTE_EVENT.PAUSE, {})
+      // 暂停时保持控制层可见（用户大概率要操作），取消隐藏计时
+      showControlsSteady()
     }
 
     const onPlayerStopped = () => {
       console.log('[casting] onPlayerStopped')
       playing.value = false
       loading.value = false
+      // 停止后保持控制层可见，取消隐藏计时
+      showControlsSteady()
       curProgress.value = 0
       curDuration.value = 0
       progressPercent.value = 0
@@ -586,6 +768,7 @@ export default defineComponent({
     const onPlayerCompleted = () => {
       console.log('[casting] onPlayerCompleted')
       playing.value = false
+      showControlsSteady()
       clearSeekState()
       // 进度播到末尾：position 上报 duration+1000（与 xiaoyoucast 一致），随后 stop
       if (curDuration.value > 0) {
@@ -601,6 +784,7 @@ export default defineComponent({
       console.warn('[casting] onPlayerError:', e)
       playing.value = false
       loading.value = false
+      showControlsSteady()
       clearSeekState()
       sendRemoteEvent(DLNA_REMOTE_EVENT.STOP, {})
       errorText.value = '播放失败，请在手机端重新投屏'
@@ -717,6 +901,8 @@ export default defineComponent({
      *  wasPlayingBeforeSeek 覆盖成 false（首次 pause 后 playing.value 已为假），导致松手
      *  onSeekStop 时误判"seek 前未在播放"而不恢复播放。 */
     const onSeekStart = (p: number) => {
+      // 用户 seek 交互 = 唤醒控制层并重新计时（播放暂停时 showControlsSteady 接管）
+      wakeControls(false)
       if (!seeking.value) {
         wasPlayingBeforeSeek = playing.value
         seeking.value = true
@@ -781,6 +967,8 @@ export default defineComponent({
 
     /** 组件 emit onSeekChanged(progress)：拖动/步进中进度预览（触摸拖动场景，电视步进也走 setProgress） */
     const onSeekChanged = (p: number) => {
+      // 拖动/步进中也是用户操作：唤醒控制层并重新计时
+      wakeControls(false)
       if (p >= 0) {
         progressText.value = fmtTime(p)
         if (curDuration.value > 0) {
@@ -792,6 +980,8 @@ export default defineComponent({
     /** 组件 emit onFocusChanged(focused)：聚焦时高亮提示可操作 */
     const onSeekbarFocusChanged = (focused: boolean) => {
       seekBarFocused.value = focused
+      // 焦点落到 seekbar = 用户在导航（遥控方向键/唤醒后补聚焦）：唤醒控制层
+      if (focused) wakeControls(false)
     }
 
     /** 切集/停止/退出时清理 seek 状态 */
@@ -812,6 +1002,8 @@ export default defineComponent({
 
     // ---------- TV 遥控控制条 ----------
     const onTogglePlay = () => {
+      // 按钮点击 = 用户操作：唤醒控制层并重新计时（暂停态转常显由 onPlayerPaused 接管）
+      wakeControls(false)
       const manager = playerManagerRef.value
       if (!manager) return
       // seek 结束恢复播放的延迟定时器未执行前用户手动按 OK：取消自动恢复，
@@ -839,6 +1031,8 @@ export default defineComponent({
     }
 
     const onToggleMute = () => {
+      // 按钮点击 = 用户操作：唤醒控制层并重新计时
+      wakeControls(false)
       const manager = playerManagerRef.value
       if (!manager) return
       muted.value = !muted.value
@@ -883,7 +1077,6 @@ export default defineComponent({
     }
 
     const onStop = () => stopAndExit()
-    const onBackHome = () => stopAndExit()
 
     // ---------- 下键：通知抖音进度到头，触发自动切下一集 ----------
     // 原理：抖音连续剧投屏靠轮询 GetPositionInfo 判断"当前集播完"
@@ -936,6 +1129,13 @@ export default defineComponent({
     const onKeyDown = (keyEvent: any): boolean => {
       // 兼容两种调用形态：es3 框架传 ESKeyEvent 对象；历史调用可能传裸 keyCode
       const kc = typeof keyEvent === 'number' ? keyEvent : Number(keyEvent?.keyCode)
+      // 控制层隐藏时：任意按键先唤醒（消费事件，防止按键落到底层 launcher 页面），
+      // 并把焦点还给 seekbar —— 下一发左右键即可快进/快退、OK 即播放/暂停。
+      if (!controlsVisible.value) {
+        console.log('[casting] 按键唤醒控制层 kc=', kc)
+        wakeControls(true)
+        return true
+      }
       const sb = seekBarRef.value
       const seekbarFocused = !!sb && typeof sb.isSeekBarFocused === 'function' && sb.isSeekBarFocused()
       if (kc === 21 || kc === 22) {
@@ -1065,6 +1265,9 @@ export default defineComponent({
       clearTimeout(stopExitTimer)
       clearTimeout(playMediaTimer)
       stopProgressTimer()
+      stopSizePoll()
+      clearInterval(elapsedTimer)
+      clearTimeout(controlsHideTimer)
       clearSeekState()
     })
 
@@ -1081,6 +1284,11 @@ export default defineComponent({
       muted,
       loading,
       errorText,
+      controlsVisible,
+      onRootClick,
+      resolutionText,
+      elapsedText,
+      icons,
       progressText,
       durationText,
       progressPercent,
@@ -1102,7 +1310,6 @@ export default defineComponent({
       onTogglePlay,
       onToggleMute,
       onStop,
-      onBackHome,
       onKeyDown,
       onKeyUp,
       onBackPressed,
@@ -1174,30 +1381,84 @@ export default defineComponent({
   color: #ff7875;
 }
 
-/* 顶部来源条 */
-.source-bar {
+/* ===== 控制层（自动隐藏容器）：全屏壳承载 scrim/导播簇/信息卡/控制条 =====
+   子元素 absolute 坐标相对本层（1920×1080 与根一致，视觉不变）；
+   隐藏 = opacity 0（v-show 的 display:none 在 web-renderer 对 div 不生效，
+   实测 Hippy 布局引擎强制 display，故用 opacity 跨运行时统一） */
+.controls-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+}
+
+/* ===== 双层 scrim（评审定稿：顶部 90deg / 底部 180deg）
+   顶部收窄 300→160（2026-09-13 陈兄：原稿过高；左上单行簇 44~116 正好被覆盖） ===== */
+.scrim-top {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 160px;
+  background: linear-gradient(90deg, rgba(6, 10, 22, 0.85), rgba(6, 10, 22, 0.35) 55%, rgba(6, 10, 22, 0) 100%);
+}
+.scrim-bottom {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1920px;
+  height: 240px;
+  background: linear-gradient(180deg, rgba(6, 10, 22, 0) 0%, rgba(6, 10, 22, 0.5) 45%, rgba(6, 10, 22, 0.9) 100%);
+}
+
+/* 左上一行：返回圆钮 + 正在投屏胶囊 + 标题 + 来源（单行垂直居中）
+   ⚠️ web-renderer 坑：align-items: flex-start 会被吞成 center——但本行用的是
+   align-items: center（垂直居中，row 的 cross 轴），实测支持正常。
+   纵向 flex column + flex-start 的坑见 git 历史（曾致整簇居中散开）。 */
+.head-cluster {
   position: absolute;
   left: 48px;
   top: 44px;
+  width: 1500px;
+  height: 72px;
   display: flex;
   flex-direction: row;
   align-items: center;
-  background: rgba(0, 0, 0, 0.45);
-  padding-top: 12px;
-  padding-bottom: 12px;
+}
+.back-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 36px;
+  background-color: rgba(10, 14, 28, 0.72);
+  border-width: 1px;
+  border-color: rgba(232, 237, 245, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+}
+.back-ico { width: 36px; height: 36px; }
+.live-pill {
+  height: 56px;
+  border-radius: 999px;
+  background-color: rgba(10, 14, 28, 0.72);
+  border-width: 1px;
+  border-color: rgba(232, 237, 245, 0.16);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   padding-left: 22px;
   padding-right: 22px;
-  border-radius: 14px;
-  max-width: 1200px;
 }
+/* 在线/直播绿点用设计 token tv-live #61cb7c（评审：设备在线加绿点），暂停转灰 */
 .live-dot {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ff4d4f;
-  box-shadow: 0 0 12px #ff4d4f;
+  background: #61cb7c;
+  box-shadow: 0 0 12px rgba(97, 203, 124, 0.8);
   animation: blink 1.4s infinite;
-  margin-right: 16px;
 }
 .live-dot.paused {
   background: #9fb0d0;
@@ -1208,86 +1469,102 @@ export default defineComponent({
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
-.source-text {
-  font-size: 26px;
+.live-text { font-size: 22px; color: #eaf0ff; margin-left: 12px; }
+.cast-title {
+  margin-left: 24px;
+  font-size: 34px;
+  font-weight: 600;
   color: #eaf0ff;
+  /* 超宽标题省略号：不把来源挤出屏幕 */
+  max-width: 640px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.res-text {
-  font-size: 24px;
-  color: #9fb0d0;
-  margin-left: 6px;
-}
+.cast-source { margin-left: 24px; font-size: 22px; color: #9fb0d0; }
 
-/* 底部控制条 */
-.control-bar {
+/* 右上信息胶囊（真实数据：分辨率取不到就隐藏整颗） */
+.info-pills {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 1920px;
-  height: 150px;
+  right: 48px;
+  top: 48px;
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding-left: 60px;
-  padding-right: 60px;
+}
+.pill {
+  height: 56px;
+  border-radius: 999px;
+  background-color: rgba(10, 14, 28, 0.72);
+  border-width: 1px;
+  border-color: rgba(232, 237, 245, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 24px;
+  padding-right: 24px;
+  margin-left: 16px;
+}
+.pill-text { font-size: 22px; color: #c7d2ea; }
+
+/* 右栏「投屏信息」卡已移除（2026-09-13 陈兄），CSS 一并清理 */
+
+/* 控制条（设计稿 992×90 居中悬浮；left = (1920-992)/2 = 464） */
+.control-bar {
+  position: absolute;
+  left: 464px;
+  bottom: 44px;
+  width: 992px;
+  height: 90px;
+  border-radius: 24px;
+  background-color: rgba(10, 14, 28, 0.66);
+  border-width: 1px;
+  border-color: rgba(232, 237, 245, 0.1);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-left: 20px;
+  padding-right: 20px;
   box-sizing: border-box;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85) 60%);
 }
 .ctrl-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background-color: rgba(232, 237, 245, 0.08);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  width: 120px;
-  height: 110px;
-  border-radius: 20px;
   justify-content: center;
-  transition: transform 0.15s ease, background 0.15s ease;
-  margin-right: 24px;
+  margin-right: 16px;
 }
-.ctrl-btn[focused],
-.ctrl-btn:focus,
-.ctrl-btn:hover {
-  transform: scale(1.06);
-  background: rgba(124, 92, 255, 0.18);
-}
-.ctrl-icon {
-  font-size: 40px;
-  color: #eaf0ff;
-}
-.ctrl-label {
-  font-size: 22px;
-  color: #c7d2ea;
-  margin-top: 8px;
-}
-.ctrl-spacer {
-  flex: 1;
-}
-.ctrl-btn.stop .ctrl-icon {
-  color: #ff7875;
-}
-.ctrl-btn.home .ctrl-icon {
-  color: #fb615a;
-}
-
-/* 进度条（qt-seek-bar 组件，TVSeekBarViewComponent 渲染） */
+.ctrl-ico { width: 36px; height: 36px; }
 .seekbar-wrap {
+  flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  width: 620px;
-  margin-left: 30px;
+  margin-right: 16px;
 }
-.seek-bar {
-  width: 620px;
-  height: 60px;
-}
+.seek-bar { flex: 1; height: 48px; }
 .seek-time-text {
-  font-size: 22px;
+  font-size: 20px;
   color: #c7d2ea;
-  margin-top: 6px;
+  margin-left: 14px;
   font-variant-numeric: tabular-nums;
 }
+/* 停止投屏：实心 coral 主按钮（评审定稿），返回/断开合一 */
+.stop-btn {
+  height: 64px;
+  border-radius: 18px;
+  background-color: #fb615a;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+.stop-ico { width: 28px; height: 28px; }
+.stop-text { font-size: 24px; font-weight: 600; color: #ffffff; margin-left: 12px; }
+
 </style>

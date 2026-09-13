@@ -70,13 +70,8 @@ export const NAV_ITEMS: NavItem[] = [
     icon: `${ICON_BASE}/nav-game.svg`,
     iconOn: `${ICON_BASE}/nav-game-on.svg`,
   },
-  {
-    key: 'cast',
-    label: '投屏',
-    glyph: '投',
-    icon: `${ICON_BASE}/nav-cast.svg`,
-    iconOn: `${ICON_BASE}/nav-cast-on.svg`,
-  },
+  // 「投屏」导航项已移除（2026-09-13 陈兄：DMR 接收端无法自选内容，该 tab 点开只有
+  // 一句提示 toast，没有实际功能）；投屏入口保留在首页 hero 的「开始投屏」CTA。
   {
     key: 'settings',
     label: '设置',
