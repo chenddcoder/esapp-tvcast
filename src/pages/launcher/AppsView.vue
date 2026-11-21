@@ -1,13 +1,15 @@
 <template>
   <div class="apps" :focusable="false">
-    <top-bar>
+    <top-bar :height="96">
       <template #left>
-        <span class="page-title" :focusable="false">全部应用</span>
-        <span class="page-count" :focusable="false">共 {{ total }} 个应用</span>
+        <div class="title-group" :focusable="false">
+          <span class="page-title" :focusable="false">全部应用</span>
+          <span class="page-sub" :focusable="false">{{ total }} 个应用，想看什么就选什么</span>
+        </div>
       </template>
       <template #right>
         <!-- 应用少（< SEARCH_MIN_APPS）时不摆搜索框：对两三个应用做搜索是无意义交互，
-             且 TV 遥控器输入文字体验很差。目录长大后会自动出现。
+             且键盘输入文字体验很差。目录长大后会自动出现。
              分类 chips 不设阈值、永远显示（见下方 .head 注释）。 -->
         <div
           v-if="showSearch"
@@ -32,8 +34,8 @@
     </top-bar>
 
     <div class="body" :focusable="false">
-      <!-- 分类筛选行：**永远显示**（陈兄 2026-09-12：分类 tab 保留，方便后面扩展）。
-           高度固定 60，有无 chips 都占这一格，网格原点因此始终落在设计稿的 232px。 -->
+      <!-- 分类筛选行：**永远显示**（分类 tab 保留，方便后面扩展）。
+           高度固定 56，有无 chips 都占这一格，网格原点因此稳定。 -->
       <div class="head" :focusable="false">
         <div
           v-for="c in counts"
@@ -48,7 +50,8 @@
           :name="'chip-' + c.key"
           @click="active = c.key"
         >
-          <span class="chip-text" :focusable="false">{{ c.label }}{{ c.count }}</span>
+          <span class="chip-text" :focusable="false">{{ c.label }}</span>
+          <span class="chip-count" :focusable="false">{{ c.count }}</span>
         </div>
       </div>
 
@@ -58,8 +61,8 @@
           :key="app.name"
           :app="app"
           variant="grid"
-          :mr="24"
-          :mb="32"
+          :mr="22"
+          :mb="24"
           @open="$emit('open', $event)"
         />
       </div>
@@ -83,14 +86,17 @@ export default defineComponent({
     const active = ref<AppCategory | 'all'>('all')
     const searchIconFailed = ref(false)
     const filtered = computed(() =>
-      active.value === 'all' ? ALL_APPS : ALL_APPS.filter((x) => x.category === active.value)
+      active.value === 'all'
+        ? ALL_APPS.value
+        : ALL_APPS.value.filter((x) => x.category === active.value)
     )
+    const total = computed(() => ALL_APPS.value.length)
     return {
       active,
       searchIconFailed,
       filtered,
       counts: CATEGORY_COUNTS,
-      total: ALL_APPS.length,
+      total,
       showSearch,
       icons: { search: `${ICON_BASE}/search-icon.svg` },
     }
@@ -99,85 +105,97 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* 样式全部落在 QuickTVUI / Hippy 支持的 CSS 子集内（同 HomeView 约定） */
+
 .apps {
   position: absolute;
-  left: 132px;
+  left: 152px;
   top: 0;
-  width: 1788px;
+  width: 1768px;
   height: 1080px;
+  padding-top: 34px;
+  padding-left: 56px;
+  padding-right: 56px;
   display: flex;
   flex-direction: column;
 }
 
-.page-title { font-size: 36px; font-weight: 600; color: #e8edf5; }
-.page-count { margin-left: 18px; font-size: 21px; color: #8194a4; }
+.title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title { font-size: 46px; font-weight: 700; color: #2E241B; }
+.page-sub { margin-top: 6px; font-size: 22px; color: #8A7A6B; }
 
 .search {
-  width: 480px;
-  height: 60px;
-  padding-left: 23px;
-  padding-right: 23px;
-  border-radius: 16px;
-  background-color: rgba(19, 23, 48, 0.88);
+  width: 520px;
+  height: 64px;
+  padding-left: 24px;
+  padding-right: 24px;
+  border-radius: 32px;
+  background-color: #FFFFFF;
   border-width: 1px;
-  border-color: #1c2440;
+  border-color: #F4E3D0;
   display: flex;
   flex-direction: row;
   align-items: center;
   focus-scale: 1.02;
-  focus-border-width: 1px;
-  focus-border-color: rgba(251, 97, 90, 0.55);
+  focus-border-width: 2px;
+  focus-border-color: #FFC08A;
 }
 
-.search-ico { width: 24px; height: 24px; margin-right: 14px; }
-.search-text { font-size: 21px; color: #8194a4; }
+.search-ico { width: 24px; height: 24px; margin-right: 12px; }
+.search-text { font-size: 22px; color: #A08B78; }
 
 .body {
-  width: 1788px;
-  padding-left: 64px;
-  padding-right: 64px;
-  padding-top: 32px;
+  width: 1656px;
+  margin-top: 22px;
   display: flex;
   flex-direction: column;
 }
 
-/* 分类筛选行：高度固定 60，保证下面网格原点不变 */
+/* 分类筛选行：高度固定 56，保证下面网格原点不变 */
 .head {
-  width: 1660px;
-  height: 60px;
+  width: 1656px;
+  height: 56px;
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
 .chip {
-  height: 60px;
+  height: 52px;
   margin-right: 14px;
-  border-radius: 999px;
-  background-color: #0f1428;
+  border-radius: 26px;
+  background-color: #FFFFFF;
   border-width: 1px;
-  border-color: #1c2440;
+  border-color: #F4E3D0;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   focus-scale: 1.04;
-  focus-border-width: 1px;
-  focus-border-color: rgba(232, 237, 245, 0.34);
+  focus-border-width: 2px;
+  focus-border-color: #FFC08A;
 }
 
 .chip.active {
-  background-color: rgba(30, 35, 60, 0.88);
-  border-color: rgba(232, 237, 245, 0.34);
+  background-color: #FF7A2F;
+  border-color: #FF7A2F;
 }
 
-.chip-text { font-size: 22px; font-weight: 500; color: #8194a4; }
-.chip.active .chip-text { font-weight: 600; color: #e8edf5; }
+.chip-text { font-size: 22px; color: #5E4C3C; }
+.chip-count { margin-left: 8px; font-size: 20px; color: #A08B78; }
 
-/* 1684 = 8×(185 磁贴 + 24 列距)：flex-wrap 会把末位磁贴的右间距算进换行判断，
-   容器需比内容净宽 1660 多出一个列距，否则一行只放得下 7 个（8×209=1672>1660）。 */
+.chip.active .chip-text { font-weight: 600; color: #FFFFFF; }
+.chip.active .chip-count { font-weight: 600; color: #FFE7D6; }
+
+/* 1656 = 8×185 + 8×22：flex-wrap 会把末位磁贴的右间距也算进换行判断，
+   所以容器取「含末位列距」的总宽，一行正好 8 个。 */
 .grid {
-  width: 1684px;
-  margin-top: 36px;
+  width: 1656px;
+  margin-top: 22px;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;

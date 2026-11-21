@@ -1,74 +1,103 @@
 <template>
   <!-- 游戏中心 tab：切到本视图（组件挂载）时读缓存/按过期策略拉取游戏库。
-       数据来自 www.chenddcoder.cn /api/game/list（与游戏中心快应用同一后端、同一契约）。
-       分类 chips 只在「有游戏的分类 ≥ 2」时出现 —— 一个分类时筛选没有意义，
-       该 60px 格位改显示说明，网格原点因此始终对齐设计稿的 232px。
-       （注意与「全部应用」的差异：那边 chips **无条件常显**，是陈兄 2026-09-12 明确要求
-         「分类 tab 保留着，方便后面扩展」；这里不照搬，是因为只有一个分类时
-         会出现「全部1」这种无任何替代选项的孤零零一颗 chip，纯噪声。） -->
+       数据来自 www.chenddccoder.cn /api/game/list（与游戏中心快应用同一后端、同一契约）。
+       版式按设计稿 03 屏：标题行 + 两张推荐大卡 + 全部游戏磁贴 + 能力标签行。 -->
   <div class="games" :focusable="false">
-    <top-bar>
+    <top-bar :height="96">
       <template #left>
-        <span class="page-title" :focusable="false">游戏中心</span>
-        <span class="page-count" :focusable="false">共 {{ total }} 个游戏</span>
+        <div class="title-group" :focusable="false">
+          <span class="page-title" :focusable="false">游戏中心</span>
+          <span class="page-sub" :focusable="false">下班来一局，随手就开玩</span>
+        </div>
       </template>
       <template #right>
-        <span class="cache-note" :focusable="false">{{ statusText }}</span>
-        <div
-          class="refresh"
-          :focusable="true"
-          :enableFocusBorder="true"
-          eventClick
-          eventFocus
-          name="gamesRefresh"
-          @click="reload(true)"
-        >
-          <span class="refresh-text" :focusable="false">刷新</span>
+        <!-- 右侧胶囊只放真实状态（缓存时间 / 加载中），没有数据就整颗隐藏 -->
+        <div v-if="freshText" class="fresh-pill" :focusable="false">
+          <div class="fresh-dot" :focusable="false"></div>
+          <span class="fresh-text" :focusable="false">{{ freshText }}</span>
         </div>
       </template>
     </top-bar>
 
     <div class="body" :focusable="false">
-      <div class="head" :focusable="false">
-        <template v-if="chips.length > 2">
-          <div
-            v-for="c in chips"
-            :key="c.id"
-            class="chip"
-            :class="{ active: c.id === activeCat }"
-            :style="{ width: (c.id === 0 ? 136 : 125) + 'px' }"
-            :focusable="true"
-            :enableFocusBorder="true"
-            eventClick
-            eventFocus
-            :name="'gchip-' + c.id"
-            @click="activeCat = c.id"
-          >
-            <span class="chip-text" :focusable="false">{{ c.name }}{{ c.count }}</span>
-          </div>
-        </template>
-        <span v-else class="head-note" :focusable="false">
-          游戏库持续更新，新游戏上架后会自动出现在这里
-        </span>
-      </div>
-
       <div v-if="loading" class="msg" :focusable="false">
         <span class="msg-text" :focusable="false">正在加载游戏库…</span>
       </div>
-      <div v-else-if="!tiles.length" class="msg" :focusable="false">
-        <span class="msg-text" :focusable="false">{{ emptyText }}</span>
-      </div>
-      <div v-else class="grid" :focusable="false">
-        <app-tile
-          v-for="t in tiles"
-          :key="t.key"
-          :app="t.item"
-          variant="grid"
-          :mr="24"
-          :mb="32"
-          @open="$emit('open', t.game)"
-        />
-      </div>
+      <template v-else>
+        <div v-if="!games.length" class="msg" :focusable="false">
+          <span class="msg-text" :focusable="false">{{ emptyText }}</span>
+        </div>
+
+        <template v-else>
+          <!-- 推荐位取游戏库前两款（真实数据，不写死游戏名） -->
+          <div class="rec-row" :focusable="false">
+            <div
+              v-for="(c, i) in featured"
+              :key="c.key"
+              class="rec-card"
+              :class="i === 0 ? 'rec-green' : 'rec-purple rec-second'"
+              :focusable="false"
+            >
+              <div class="rec-tag" :focusable="false">
+                <span class="rec-tag-text" :focusable="false">{{ c.tag }}</span>
+              </div>
+              <span class="rec-title" :focusable="false">{{ c.game.name }}</span>
+              <span class="rec-desc" :focusable="false">{{ c.desc }}</span>
+              <div
+                class="rec-btn"
+                :focusable="true"
+                :enableFocusBorder="true"
+                eventClick
+                eventFocus
+                :name="'rec-' + c.key"
+                @click="$emit('open', c.game)"
+              >
+                <span class="rec-btn-text" :class="i === 0 ? 'rec-btn-green' : 'rec-btn-purple'" :focusable="false">
+                  立即开玩
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section" :focusable="false">
+            <div class="sec-head" :focusable="false">
+              <span class="sec-title" :focusable="false">全部游戏</span>
+              <!-- 「共 N 款」同时作为手动刷新入口（设计稿的箭头即交互位） -->
+              <div
+                class="sec-link"
+                :focusable="true"
+                :enableFocusBorder="true"
+                eventClick
+                eventFocus
+                name="gamesRefresh"
+                @click="reload(true)"
+              >
+                <span class="sec-link-text" :focusable="false">共 {{ total }} 款</span>
+                <span class="sec-link-arrow" :focusable="false">›</span>
+              </div>
+            </div>
+
+            <div class="grid" :focusable="false">
+              <app-tile
+                v-for="t in tiles"
+                :key="t.key"
+                :app="t.item"
+                variant="game"
+                :mr="19"
+                :mb="19"
+                @open="$emit('open', t.game)"
+              />
+            </div>
+          </div>
+
+          <div class="caps" :focusable="false">
+            <div v-for="cap in caps" :key="cap" class="cap" :focusable="false">
+              <div class="cap-dot" :focusable="false"></div>
+              <span class="cap-text" :focusable="false">{{ cap }}</span>
+            </div>
+          </div>
+        </template>
+      </template>
     </div>
   </div>
 </template>
@@ -81,7 +110,6 @@ import {
   loadGames,
   EMPTY_GAMES_STATE,
   flattenGames,
-  categoriesWithGames,
   type GameItem,
   type GamesState,
 } from './gamesApi'
@@ -91,11 +119,9 @@ export default defineComponent({
   name: 'GamesView',
   components: { TopBar, AppTile },
   emits: ['open'],
-  setup(_props, { emit }) {
+  setup() {
     const state = ref<GamesState>({ ...EMPTY_GAMES_STATE })
     const loading = ref(true)
-    /** 0 = 全部分类 */
-    const activeCat = ref(0)
     /** 卸载后不写状态（切 tab 很快时避免旧结果覆盖新视图） */
     let alive = true
 
@@ -104,46 +130,42 @@ export default defineComponent({
       const next = await loadGames(force)
       if (!alive) return
       state.value = next
-      // 选中的分类可能因刷新消失，回落「全部」
-      if (activeCat.value !== 0 && !next.list.some((c) => c.id === activeCat.value)) {
-        activeCat.value = 0
-      }
       loading.value = false
     }
 
     const games = computed<GameItem[]>(() => flattenGames(state.value.list))
     const total = computed(() => games.value.length)
 
-    const visible = computed<GameItem[]>(() =>
-      activeCat.value === 0
-        ? games.value
-        : games.value.filter((g) => g.category_id === activeCat.value)
+    /** 分类名（推荐卡副标签用真实分类，不写死） */
+    const categoryName = (id: number): string =>
+      state.value.list.find((c) => c.id === id)?.name || '推荐'
+
+    /** 推荐位：游戏库前两款，文案全部取接口字段 */
+    const featured = computed(() =>
+      games.value.slice(0, 2).map((g) => ({
+        key: 'g' + g.id,
+        game: g,
+        tag: `${categoryName(g.category_id)} · 即点即玩`,
+        desc: g.description || '键盘与手柄都能玩，点开即开局',
+      }))
     )
 
-    /** 游戏 → 磁贴数据（图标是该游戏的彩色方角图标，失败退名称首字） */
+    /** 游戏 → 磁贴数据（图标失败退名称首字） */
     const tiles = computed(() =>
-      visible.value.map((g) => ({
+      games.value.map((g) => ({
         key: 'g' + g.id,
         game: g,
         item: {
           name: g.name,
           glyph: g.name.charAt(0),
-          c1: '#2c3a63',
-          c2: '#121a33',
+          c1: '#C3A8F5',
+          c2: '#8B6FE0',
           pkg: g.pkg,
           icon: g.icon,
+          meta: `${g.rating === '12+' ? '12+' : '全年龄'} · ${categoryName(g.category_id)}`,
         } as TileItem,
       }))
     )
-
-    /** chips：全部 + 有游戏的分类（调用方按数量决定是否显示） */
-    const chips = computed(() => {
-      const cats = categoriesWithGames(state.value.list)
-      return [
-        { id: 0, name: '全部', count: total.value },
-        ...cats.map((c) => ({ id: c.id, name: c.name, count: c.games.length })),
-      ]
-    })
 
     const emptyText = computed(() =>
       state.value.error ? `游戏库加载失败：${state.value.error}` : '游戏库暂时没有内容'
@@ -155,130 +177,235 @@ export default defineComponent({
       return `${p(d.getHours())}:${p(d.getMinutes())}`
     }
 
-    /** 缓存状态如实标注：命中缓存的标"缓存"，过期的标"已过期"，失败标原因 */
-    const statusText = computed(() => {
+    /** 右上胶囊：只在有真实缓存时间时显示；失败信息留给正文空态，不塞胶囊 */
+    const freshText = computed(() => {
       if (loading.value) return '加载中…'
-      if (state.value.error) return state.value.error
-      if (!state.value.updatedAt) return ''
-      const prefix = state.value.fromCache ? (state.value.expired ? '缓存已过期 · ' : '缓存 · ') : ''
+      if (state.value.error || !state.value.updatedAt) return ''
+      const prefix = state.value.fromCache ? (state.value.expired ? '缓存已过期 · ' : '本地缓存 · ') : ''
       return `${prefix}更新于 ${hhmm(state.value.updatedAt)}`
     })
+
+    const caps = ['支持键盘与手柄', '本地双人同屏', '免下载，秒开即玩']
 
     // 挂载即加载 = 「切 tab 时拉取」；缓存未过期则不发请求
     onMounted(() => reload(false))
 
     return {
-      state,
       loading,
-      activeCat,
-      chips,
-      tiles,
+      games,
       total,
+      featured,
+      tiles,
+      caps,
       emptyText,
-      statusText,
+      freshText,
       reload,
-      onOpen: (g: GameItem) => emit('open', g),
     }
   },
 })
 </script>
 
 <style scoped>
+/* 样式全部落在 QuickTVUI / Hippy 支持的 CSS 子集内（同 HomeView 约定） */
+
 .games {
   position: absolute;
-  left: 132px;
+  left: 152px;
   top: 0;
-  width: 1788px;
+  width: 1768px;
   height: 1080px;
+  padding-top: 34px;
+  padding-left: 56px;
+  padding-right: 56px;
   display: flex;
   flex-direction: column;
 }
 
-/* 与 AppsView 的页标题同款（同名同声明，撞名无害） */
-.page-title { font-size: 36px; font-weight: 600; color: #e8edf5; }
-.page-count { margin-left: 18px; font-size: 21px; color: #8194a4; }
+.title-group {
+  display: flex;
+  flex-direction: column;
+}
 
-.cache-note { margin-right: 16px; font-size: 19px; color: #8194a4; }
+.page-title { font-size: 46px; font-weight: 700; color: #2E241B; }
+.page-sub { margin-top: 6px; font-size: 22px; color: #8A7A6B; }
 
-.refresh {
-  width: 124px;
-  height: 60px;
-  border-radius: 16px;
-  background-color: rgba(19, 23, 48, 0.88);
-  border-width: 1px;
-  border-color: #1c2440;
+.fresh-pill {
+  height: 52px;
+  padding-left: 22px;
+  padding-right: 22px;
+  border-radius: 26px;
+  background-color: #FFF1E2;
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
-  focus-scale: 1.02;
-  focus-border-width: 1px;
-  focus-border-color: rgba(251, 97, 90, 0.55);
 }
 
-.refresh-text { font-size: 22px; font-weight: 500; color: #e8edf5; }
+.fresh-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background-color: #FF7A2F;
+  margin-right: 8px;
+}
+
+.fresh-text { font-size: 21px; font-weight: 600; color: #E9661E; }
 
 .body {
-  width: 1788px;
-  padding-left: 64px;
-  padding-right: 64px;
-  padding-top: 32px;
+  width: 1656px;
+  margin-top: 24px;
   display: flex;
   flex-direction: column;
 }
 
-/* 分类 chips 行 / 说明行共用这一格：高度固定 60，保证下面网格原点不变 */
-.head {
-  width: 1660px;
-  height: 60px;
+/* 推荐大卡：815×360，两张 + 26 列距 = 1656 */
+.rec-row {
+  width: 1656px;
+  display: flex;
+  flex-direction: row;
+}
+
+.rec-card {
+  width: 815px;
+  height: 360px;
+  padding: 36px;
+  border-radius: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rec-second { margin-left: 26px; }
+
+.rec-green { background: linear-gradient(135deg, #5BC98F, #2F9468); }
+.rec-purple { background: linear-gradient(135deg, #A98CF0, #7357C9); }
+
+.rec-tag {
+  height: 42px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-radius: 21px;
+  background-color: rgba(255, 255, 255, 0.24);
   display: flex;
   flex-direction: row;
   align-items: center;
+  align-self: flex-start;
 }
 
-.head-note { font-size: 21px; color: #8194a4; }
+.rec-tag-text { font-size: 20px; font-weight: 600; color: #FFFFFF; }
 
-.chip {
-  height: 60px;
-  margin-right: 14px;
-  border-radius: 999px;
-  background-color: #0f1428;
-  border-width: 1px;
-  border-color: #1c2440;
+.rec-title {
+  margin-top: 30px;
+  font-size: 54px;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.rec-desc {
+  margin-top: 10px;
+  font-size: 23px;
+  color: #EAF8F0;
+  max-width: 700px;
+}
+
+.rec-btn {
+  margin-top: 18px;
+  width: 190px;
+  height: 58px;
+  border-radius: 29px;
+  background-color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: flex-start;
+  focus-scale: 1.04;
+  focus-border-width: 2px;
+  focus-border-color: rgba(255, 255, 255, 0.6);
+}
+
+.rec-btn-text { font-size: 22px; font-weight: 700; }
+.rec-btn-green { color: #2F9468; }
+.rec-btn-purple { color: #7357C9; }
+
+.section {
+  width: 1656px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sec-head {
+  height: 48px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sec-title { font-size: 34px; font-weight: 700; color: #2E241B; }
+
+.sec-link {
+  height: 40px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   focus-scale: 1.04;
   focus-border-width: 1px;
-  focus-border-color: rgba(232, 237, 245, 0.34);
+  focus-border-color: #FFC08A;
+  focus-background-color: #FFF7EC;
 }
 
-.chip.active {
-  background-color: rgba(30, 35, 60, 0.88);
-  border-color: rgba(232, 237, 245, 0.34);
-}
+.sec-link-text { font-size: 22px; color: #8A7A6B; }
+.sec-link-arrow { margin-left: 6px; font-size: 20px; color: #8A7A6B; }
 
-.chip-text { font-size: 22px; font-weight: 500; color: #8194a4; }
-.chip.active .chip-text { font-weight: 600; color: #e8edf5; }
-
-/* 1684 = 8×(185 磁贴 + 24 列距)：flex-wrap 会把末位磁贴的右间距算进换行判断，
-   容器需比内容净宽 1660 多出一个列距，否则一行只放得下 7 个。 */
+/* 1674 = 6×260 + 6×19：含末位列距，一行 6 款 */
 .grid {
-  width: 1684px;
-  margin-top: 36px;
+  width: 1674px;
+  margin-top: 18px;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
 }
 
+.caps {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.cap {
+  height: 52px;
+  margin-right: 14px;
+  padding-left: 20px;
+  padding-right: 20px;
+  border-radius: 26px;
+  background-color: #FFFFFF;
+  border-width: 1px;
+  border-color: #F4E3D0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.cap-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background-color: #E9661E;
+  margin-right: 10px;
+}
+
+.cap-text { font-size: 21px; color: #5E4C3C; }
+
 .msg {
-  width: 1660px;
-  margin-top: 36px;
+  width: 1656px;
   height: 240px;
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
-.msg-text { font-size: 23px; color: #8194a4; }
+.msg-text { font-size: 23px; color: #8A7A6B; }
 </style>

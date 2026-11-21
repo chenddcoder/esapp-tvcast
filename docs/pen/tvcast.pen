@@ -6009,6 +6009,1594 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "CGQvD",
+      "x": 6040,
+      "y": 0,
+      "name": "游戏中心 App Icon",
+      "clip": true,
+      "width": 1808,
+      "fill": "#EDEFF3",
+      "cornerRadius": 40,
+      "layout": "vertical",
+      "gap": 56,
+      "padding": 72,
+      "children": [
+        {
+          "type": "frame",
+          "id": "co1aN",
+          "name": "Header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 8,
+          "children": [
+            {
+              "type": "text",
+              "id": "t1Kc4t",
+              "name": "Title",
+              "fill": "#101828",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "游戏中心 · 应用图标",
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 44,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "text",
+              "id": "XkYka",
+              "name": "Subtitle",
+              "fill": "#667085",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "cn.chenddcoder.game   ·   512 × 512 母版（2× 导出 1024）   ·   圆角 116   ·   #0B1220 深海军蓝 + #FFD76A 金",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "C1pWHV",
+          "name": "Concepts",
+          "gap": 64,
+          "children": [
+            {
+              "type": "frame",
+              "id": "tdwGS",
+              "name": "Concept A",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lZ9vM",
+                  "name": "Icon A",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#2A3B5E",
+                        "position": 0
+                      },
+                      {
+                        "color": "#0B1220",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "NuegF",
+                      "x": -90,
+                      "y": -200,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#6E9AE0AA",
+                            "position": 0
+                          },
+                          {
+                            "color": "#6E9AE000",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "icon",
+                      "id": "APnCn",
+                      "x": 106,
+                      "y": 106,
+                      "name": "Gamepad",
+                      "width": 300,
+                      "height": 300,
+                      "icon": "sports_esports",
+                      "library": "Material Symbols Rounded",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE35",
+                            "position": 1
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "CexnS",
+                  "name": "Caption A",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 A · 手柄",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "ccDZF",
+                  "name": "Desc A",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "经典手柄符号 + 金色渐变，识别度最高，适合 TV 桌面最远观看距离",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "ERP0y",
+                  "name": "Final Label",
+                  "fill": "#1B7F4B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "定稿 · cn.chenddcoder.game.svg / .png",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "bold"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ZGjRg",
+              "name": "Concept B",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "IrJgb",
+                  "name": "Icon B",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#2A3B5E",
+                        "position": 0
+                      },
+                      {
+                        "color": "#0B1220",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "r8kJrv",
+                      "x": -90,
+                      "y": -200,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#6E9AE0AA",
+                            "position": 0
+                          },
+                          {
+                            "color": "#6E9AE000",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "frame",
+                      "id": "l4uME",
+                      "x": 72,
+                      "y": 72,
+                      "name": "Tile star",
+                      "width": 168,
+                      "height": 168,
+                      "fill": "#22345C",
+                      "cornerRadius": 44,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "CGYSJ",
+                          "x": 38,
+                          "y": 38,
+                          "name": "star",
+                          "width": 92,
+                          "height": 92,
+                          "icon": "star",
+                          "library": "Material Symbols Rounded",
+                          "fill": "#B8C9E8"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "h9TSvY",
+                      "x": 272,
+                      "y": 72,
+                      "name": "Tile play_arrow",
+                      "width": 168,
+                      "height": 168,
+                      "fill": "#22345C",
+                      "cornerRadius": 44,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "E0byAS",
+                          "x": 38,
+                          "y": 38,
+                          "name": "play_arrow",
+                          "width": 92,
+                          "height": 92,
+                          "icon": "play_arrow",
+                          "library": "Material Symbols Rounded",
+                          "fill": "#B8C9E8"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ngmQE",
+                      "x": 72,
+                      "y": 272,
+                      "name": "Tile emoji_events",
+                      "width": 168,
+                      "height": 168,
+                      "fill": "#22345C",
+                      "cornerRadius": 44,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "JloEX",
+                          "x": 38,
+                          "y": 38,
+                          "name": "trophy",
+                          "width": 92,
+                          "height": 92,
+                          "icon": "trophy",
+                          "library": "lucide",
+                          "fill": "#B8C9E8"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ep1hu",
+                      "x": 272,
+                      "y": 272,
+                      "name": "Tile sports_esports",
+                      "width": 168,
+                      "height": 168,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 200,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE35",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 44,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#EFAE3566",
+                        "offset": {
+                          "x": 0,
+                          "y": 10
+                        },
+                        "blur": 28
+                      },
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "RgMjl",
+                          "x": 38,
+                          "y": 38,
+                          "name": "Gamepad",
+                          "width": 92,
+                          "height": 92,
+                          "icon": "sports_esports",
+                          "library": "Material Symbols Rounded",
+                          "fill": "#0B1220"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "tSuyx",
+                  "name": "Caption B",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 B · 游戏格",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "d4txh",
+                  "name": "Desc B",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "四宫格屉格 + 金块高亮，传达「多个游戏汇聚一处」的中心感",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tg9A4",
+              "name": "Concept C",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "oMMl2",
+                  "name": "Icon C",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#22345C",
+                        "position": 0
+                      },
+                      {
+                        "color": "#080E1A",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "vertical",
+                  "gap": 20,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "s41DuK",
+                      "layoutPosition": "absolute",
+                      "x": -80,
+                      "y": -180,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#EFAE3540",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE3500",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 672,
+                      "height": 672
+                    },
+                    {
+                      "type": "text",
+                      "id": "Xh4gi",
+                      "name": "Chr",
+                      "fill": "#F5EFE0",
+                      "content": "游",
+                      "fontFamily": "Noto Sans SC",
+                      "fontSize": 276,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "W5MmoK",
+                      "name": "Underline",
+                      "width": 196,
+                      "height": 20,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE35",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 10
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "tqzTM",
+                  "name": "Caption C",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 C · 汉字「游」",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "w05Bs",
+                  "name": "Desc C",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "纯中文单字立牌，远距离辨识强，与品牌命名习惯一致",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "NRScq",
+      "x": 6040,
+      "y": 1077,
+      "name": "天气 App Icon",
+      "clip": true,
+      "width": 1808,
+      "fill": "#EDEFF3",
+      "cornerRadius": 40,
+      "layout": "vertical",
+      "gap": 56,
+      "padding": 72,
+      "children": [
+        {
+          "type": "frame",
+          "id": "Z57GO",
+          "name": "Header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 8,
+          "children": [
+            {
+              "type": "text",
+              "id": "qXwIu",
+              "name": "Title",
+              "fill": "#101828",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "天气 · 应用图标",
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 44,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "text",
+              "id": "as93M",
+              "name": "Subtitle",
+              "fill": "#667085",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "cn.chenddcoder.weather   ·   512 × 512 母版（2× 导出 1024）   ·   圆角 116   ·   #2E6FB7 → #123A63 天蓝渐变",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "n9TMXJ",
+          "name": "Concepts",
+          "gap": 64,
+          "children": [
+            {
+              "type": "frame",
+              "id": "zTW95",
+              "name": "Weather Concept A",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zAiZ6",
+                  "name": "Weather Icon A",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#2E6FB7",
+                        "position": 0
+                      },
+                      {
+                        "color": "#123A63",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "CiEGW",
+                      "x": -90,
+                      "y": -200,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#9CCDF5AA",
+                            "position": 0
+                          },
+                          {
+                            "color": "#9CCDF500",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "icon",
+                      "id": "Udkba",
+                      "x": 106,
+                      "y": 106,
+                      "name": "cloud-sun",
+                      "width": 300,
+                      "height": 300,
+                      "icon": "cloud-sun",
+                      "library": "lucide",
+                      "fill": "#F5EFE0"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "S4wec",
+                  "name": "Caption A",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 A · 日云",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "ASZ8s",
+                  "name": "Desc A",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "描边日云字形（lucide cloud-sun），蓝底 + 米白，与游戏中心同族，远距离误识率最低",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "jMYuh",
+                  "name": "Final Label",
+                  "fill": "#1B7F4B",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "定稿 · cn.chenddcoder.weather.svg / .png",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "bold"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dmY8Q",
+              "name": "Weather Concept B",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "j6JZIC",
+                  "name": "Weather Icon A",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#2E6FB7",
+                        "position": 0
+                      },
+                      {
+                        "color": "#123A63",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "d1H47C",
+                      "x": -90,
+                      "y": -200,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#9CCDF5AA",
+                            "position": 0
+                          },
+                          {
+                            "color": "#9CCDF500",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "icon",
+                      "id": "ep5gO",
+                      "x": 106,
+                      "y": 106,
+                      "name": "cloud-rain",
+                      "width": 300,
+                      "height": 300,
+                      "icon": "cloud-rain",
+                      "library": "lucide",
+                      "fill": "#F5EFE0"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "AwBl0",
+                  "name": "Caption A",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 B · 云雨",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "UUwIL",
+                  "name": "Desc A",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "描边云 + 三根雨线（lucide cloud-rain），“预报/降水”语义更宽，线条与游戏中心同族",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Nu2W4",
+              "name": "Weather Concept C",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zaveW",
+                  "name": "Weather Icon A",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#2E6FB7",
+                        "position": 0
+                      },
+                      {
+                        "color": "#123A63",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "SmSbG",
+                      "x": -90,
+                      "y": -200,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#9CCDF5AA",
+                            "position": 0
+                          },
+                          {
+                            "color": "#9CCDF500",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "icon",
+                      "id": "PO8JB",
+                      "x": 96,
+                      "y": 96,
+                      "name": "sunny",
+                      "width": 320,
+                      "height": 320,
+                      "icon": "sunny",
+                      "library": "Material Symbols Rounded",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#FFC93C",
+                            "position": 1
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Je2Mm",
+                  "name": "Caption A",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 C · 晴",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "fTOhx",
+                  "name": "Desc A",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "大太阳金色渐变（Material Symbols sunny），对比最强、最醒目的天气符号，但语义只盖“晴”",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "EiI7u",
+      "x": 6040,
+      "y": 2178,
+      "name": "鸿渐冒险 App Icon",
+      "clip": true,
+      "width": 1808,
+      "fill": "#EDEFF3",
+      "cornerRadius": 40,
+      "layout": "vertical",
+      "gap": 56,
+      "padding": 72,
+      "children": [
+        {
+          "type": "frame",
+          "id": "I2MWH",
+          "name": "Header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 8,
+          "children": [
+            {
+              "type": "text",
+              "id": "P5w1g",
+              "name": "Title",
+              "fill": "#101828",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "鸿渐冒险 · 应用图标",
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 44,
+              "fontWeight": "bold"
+            },
+            {
+              "type": "text",
+              "id": "B4c3w",
+              "name": "Subtitle",
+              "fill": "#667085",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "cn.chenddcoder.hongjian   ·   512 × 512 母版（2× 导出 1024）   ·   圆角 116   ·   #1C2A4A → #0B1220 夜蓝 + #FFD76A 金",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "uA2wA",
+          "name": "Concepts",
+          "gap": 64,
+          "children": [
+            {
+              "type": "frame",
+              "id": "Z1GVu",
+              "name": "HJ Concept A",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "S2j4k",
+                  "name": "HJ Icon A",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#1C2A4A",
+                        "position": 0
+                      },
+                      {
+                        "color": "#0B1220",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "wRmMm",
+                      "x": -90,
+                      "y": -200,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#6E9AE0AA",
+                            "position": 0
+                          },
+                          {
+                            "color": "#6E9AE000",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lm6SM",
+                      "x": 48,
+                      "y": 368,
+                      "name": "s1 body",
+                      "width": 416,
+                      "height": 96,
+                      "fill": "#B4762F",
+                      "cornerRadius": 10
+                    },
+                    {
+                      "type": "frame",
+                      "id": "u2xq6",
+                      "x": 48,
+                      "y": 368,
+                      "name": "s1 edge",
+                      "width": 416,
+                      "height": 18,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#FFD76A",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 9
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hOOoh",
+                      "x": 176,
+                      "y": 248,
+                      "name": "s2 body",
+                      "width": 288,
+                      "height": 120,
+                      "fill": "#C9873A",
+                      "cornerRadius": 10
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yCBsB",
+                      "x": 176,
+                      "y": 248,
+                      "name": "s2 edge",
+                      "width": 288,
+                      "height": 18,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#FFD76A",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 9
+                    },
+                    {
+                      "type": "icon",
+                      "id": "byBKH",
+                      "x": 216,
+                      "y": 48,
+                      "name": "goose",
+                      "width": 200,
+                      "height": 200,
+                      "icon": "raven",
+                      "library": "Material Symbols Rounded",
+                      "fill": "#F5EFE0"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "ntCSg",
+                  "name": "HJ Caption A",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 A · 鸿渐于陆",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "hQEa6",
+                  "name": "HJ Desc A",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "大雁立于金阶之上，直译「鸿渐于陆，拾级登高」；骨架最简单，140px 游戏封面下最稳",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hNswD",
+              "name": "HJ Concept B",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lmQlv",
+                  "name": "HJ Icon B",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#1C2A4A",
+                        "position": 0
+                      },
+                      {
+                        "color": "#0B1220",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "R8RJd",
+                      "x": -90,
+                      "y": -200,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFD76A3D",
+                            "position": 0
+                          },
+                          {
+                            "color": "#FFD76A00",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WMQy7",
+                      "x": 136,
+                      "y": 112,
+                      "name": "brick",
+                      "width": 240,
+                      "height": 240,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE35",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 56
+                    },
+                    {
+                      "type": "text",
+                      "id": "R2H7jn",
+                      "x": 156,
+                      "y": 132,
+                      "name": "qm",
+                      "fill": "#0B1220",
+                      "textGrowth": "fixed-width-height",
+                      "width": 200,
+                      "height": 200,
+                      "content": "?",
+                      "textAlign": "center",
+                      "textAlignVertical": "middle",
+                      "fontFamily": "Noto Sans SC",
+                      "fontSize": 200,
+                      "fontWeight": "bold"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vsTsU",
+                      "x": 88,
+                      "y": 408,
+                      "name": "b step",
+                      "width": 336,
+                      "height": 56,
+                      "fill": "#B4762F",
+                      "cornerRadius": 10
+                    },
+                    {
+                      "type": "frame",
+                      "id": "py3FK",
+                      "x": 88,
+                      "y": 408,
+                      "name": "b edge",
+                      "width": 336,
+                      "height": 16,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE35",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 8
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "bJPXi",
+                  "name": "HJ Caption B",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 B · 问号砖",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "p19GBe",
+                  "name": "HJ Desc B",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "金砖问号 + 一级台阶，直给「平台跳跃 + 顶砖」机制；游戏感最强，但与「鸿渐」的字面关联弱",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DxcxX",
+              "name": "HJ Concept C",
+              "width": 512,
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "egQUI",
+                  "name": "HJ Icon C",
+                  "clip": true,
+                  "width": 512,
+                  "height": 512,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 180,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#1C2A4A",
+                        "position": 0
+                      },
+                      {
+                        "color": "#0B1220",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 116,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "ellipse",
+                      "id": "Uvdtf",
+                      "x": -90,
+                      "y": -230,
+                      "name": "Glow",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "radial",
+                        "enabled": true,
+                        "rotation": 0,
+                        "size": {
+                          "width": 1,
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#9CCDF5AA",
+                            "position": 0
+                          },
+                          {
+                            "color": "#9CCDF500",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "width": 700,
+                      "height": 700
+                    },
+                    {
+                      "type": "icon",
+                      "id": "vu99s",
+                      "x": 96,
+                      "y": 144,
+                      "name": "gooseC",
+                      "width": 300,
+                      "height": 300,
+                      "icon": "raven",
+                      "library": "Material Symbols Rounded",
+                      "fill": "#F5EFE0"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "Ml4Od",
+                      "x": 330,
+                      "y": 60,
+                      "name": "moon",
+                      "width": 126,
+                      "height": 126,
+                      "icon": "dark_mode",
+                      "library": "Material Symbols Rounded",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE35",
+                            "position": 1
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VGRnL",
+                      "x": 48,
+                      "y": 444,
+                      "name": "ground",
+                      "width": 416,
+                      "height": 14,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 180,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#FFF0BF",
+                            "position": 0
+                          },
+                          {
+                            "color": "#EFAE35",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 7
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "OZYV9",
+                  "name": "HJ Caption C",
+                  "fill": "#101828",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "方案 C · 夜行雁",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 26,
+                  "fontWeight": "bold"
+                },
+                {
+                  "type": "text",
+                  "id": "K1kjcC",
+                  "name": "HJ Desc C",
+                  "fill": "#667085",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "大雁 + 金色月牙 + 地面线，最简洁最有氛围；小尺寸最稳，但「登高」语义要观众自己补",
+                  "lineHeight": 1.4,
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 17,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {

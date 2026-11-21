@@ -204,6 +204,23 @@ const rectEq = (r, x, y, w, h) =>
       stopIconOk: imgOk('stop'),
       muteIconOk: imgOk('mute'),
       seekbar: !!q('seekbar'),
+      // thumb 白点已隐藏：seekbar 内固定 px 尺寸的 thumb 子元素应换成透明图/透明底
+      thumbHidden: (() => {
+        const sb = document.querySelector('[name="seekbar"]')
+        if (!sb) return false
+        const kids = Array.from(sb.children || []).filter((el) => {
+          if (!el.getBoundingClientRect || !el.style) return false
+          const r = el.getBoundingClientRect()
+          // thumb 特征：固定 px 小尺寸（轨道是 100% 宽、进度条是百分比宽）
+          return r.width > 0 && r.width <= 60 && r.height <= 60 && !/100%/.test(el.style.width || '')
+        })
+        if (!kids.length) return true
+        return kids.every((el) => {
+          const cs = getComputedStyle(el)
+          const bg = (cs.backgroundColor || '').replace(/\s/g, '')
+          return /data:image\/png/.test(cs.backgroundImage || '') || bg === 'rgba(0,0,0,0)'
+        })
+      })(),
       hasOldHomeBtn: /返回主页/.test(document.body.innerText || ''),
     }
   })
@@ -238,9 +255,9 @@ const rectEq = (r, x, y, w, h) =>
     `bar=${JSON.stringify(ui.controlBar)}；play=${ui.playIconOk}；mute=${ui.muteIconOk}；stop=${ui.stopIconOk}`
   )
   check(
-    '⑧ 「停止投屏」实心 coral 主按钮 + 无重复「返回主页」+ seekbar 在位',
-    /停止投屏/.test(ui.stopBtn || '') && !ui.hasOldHomeBtn && ui.seekbar,
-    `stop=${JSON.stringify(ui.stopBtn)}；oldHomeBtn=${ui.hasOldHomeBtn}；seekbar=${ui.seekbar}`
+    '⑧ 「停止投屏」实心 coral 主按钮 + 无重复「返回主页」+ seekbar 在位 + 白点 thumb 已隐藏',
+    /停止投屏/.test(ui.stopBtn || '') && !ui.hasOldHomeBtn && ui.seekbar && ui.thumbHidden,
+    `stop=${JSON.stringify(ui.stopBtn)}；oldHomeBtn=${ui.hasOldHomeBtn}；seekbar=${ui.seekbar}；thumbHidden=${ui.thumbHidden}`
   )
 
   // ⑤ 截图留档（播放中、全 UI 可见）

@@ -14,7 +14,7 @@
           <div class="qr" :focusable="false">
             <span v-for="(c, i) in qrCells" :key="i"
                   class="qr-cell" :focusable="false"
-                  :style="{ backgroundColor: c ? '#0b101e' : 'transparent' }"></span>
+                  :style="{ backgroundColor: c ? '#2E241B' : 'transparent' }"></span>
           </div>
           <span class="qr-tip" :focusable="false">微信 / 相机扫码连接</span>
         </div>
@@ -84,21 +84,22 @@ export default defineComponent({
   inset: 0;
   width: 1920px;
   height: 1080px;
-  background: rgba(0, 0, 0, 0.6);
+  background-color: rgba(46, 36, 27, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .guide-card {
   width: 1180px;
-  background: linear-gradient(180deg, #121a30, #0c1322);
-  border: 1px solid rgba(124, 92, 255, 0.35);
+  background-color: #FFFFFF;
+  border-width: 1px;
+  border-color: #F4E3D0;
   border-radius: 28px;
   padding-top: 40px;
   padding-bottom: 48px;
   padding-left: 48px;
   padding-right: 48px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 30px 80px rgba(90, 60, 30, 0.22);
 }
 .guide-header {
   display: flex;
@@ -110,14 +111,14 @@ export default defineComponent({
 .guide-title {
   font-size: 36px;
   font-weight: 800;
-  color: #eaf0ff;
+  color: #2E241B;
 }
 .guide-close {
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #c7d2ea;
+  background-color: #FFF1E2;
+  color: #E9661E;
   font-size: 28px;
   display: flex;
   align-items: center;
@@ -127,7 +128,7 @@ export default defineComponent({
 .guide-close[focused],
 .guide-close:focus {
   transform: scale(1.06);
-  background: rgba(124, 92, 255, 0.22);
+  background-color: #FFE8D2;
 }
 .guide-body {
   display: flex;
@@ -160,7 +161,7 @@ export default defineComponent({
 }
 .qr-tip {
   font-size: 24px;
-  color: #9fb0d0;
+  color: #8A7A6B;
   margin-top: 18px;
 }
 .steps {
@@ -178,8 +179,8 @@ export default defineComponent({
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #fb615a;
-  color: #fff;
+  background-color: #FF7A2F;
+  color: #FFFFFF;
   font-size: 26px;
   font-weight: 800;
   display: flex;
@@ -190,7 +191,7 @@ export default defineComponent({
 }
 .step-text {
   font-size: 28px;
-  color: #eaf0ff;
+  color: #2E241B;
 }
 .code-box {
   display: flex;
@@ -202,17 +203,17 @@ export default defineComponent({
   padding-left: 26px;
   padding-right: 26px;
   border-radius: 16px;
-  background: rgba(124, 92, 255, 0.12);
+  background-color: #FFF1E2;
 }
 .code-label {
   font-size: 26px;
-  color: #9fb0d0;
+  color: #8A7A6B;
   margin-right: 18px;
 }
 .code-value {
   font-size: 40px;
   font-weight: 800;
-  color: #eaf0ff;
+  color: #E9661E;
   letter-spacing: 6px;
   font-variant-numeric: tabular-nums;
 }
@@ -224,8 +225,8 @@ export default defineComponent({
   padding-left: 44px;
   padding-right: 44px;
   border-radius: 16px;
-  background: #fb615a;
-  color: #fff;
+  background-color: #FF7A2F;
+  color: #FFFFFF;
   font-size: 28px;
   font-weight: 700;
   transition: transform 0.15s ease;

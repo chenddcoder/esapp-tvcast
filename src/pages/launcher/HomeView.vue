@@ -1,21 +1,19 @@
 <template>
   <div class="home" :focusable="false">
-    <top-bar>
+    <top-bar :height="84">
       <template #left>
-        <span class="device-name" :focusable="false">{{ deviceName }}</span>
-        <div class="pill" :focusable="false">
-          <img
-            v-if="!wifiFailed"
-            :src="icons.wifi"
-            class="pill-ico"
-            @error="wifiFailed = true"
-            :focusable="false"
-          />
-          <span class="pill-text" :focusable="false">{{ netText }}</span>
-        </div>
-        <div class="pill" :focusable="false">
-          <div class="pill-dot" :style="{ backgroundColor: stateReady ? '#61cb7c' : '#8194a4' }" :focusable="false"></div>
-          <span class="pill-text" :focusable="false">{{ stateText }}</span>
+        <div class="greet-wrap" :focusable="false">
+          <span class="greeting" :focusable="false">{{ greeting }}</span>
+          <div class="pills" :focusable="false">
+            <div class="pill" :focusable="false">
+              <div class="pill-dot" :style="{ backgroundColor: stateReady ? '#4CB782' : '#A08B78' }" :focusable="false"></div>
+              <span class="pill-text" :focusable="false">{{ deviceName }}</span>
+            </div>
+            <div class="pill pill-warm" :focusable="false">
+              <div class="pill-dot pill-dot-warm" :focusable="false"></div>
+              <span class="pill-warm-text" :focusable="false">{{ stateText }}</span>
+            </div>
+          </div>
         </div>
       </template>
       <template #right>
@@ -25,10 +23,7 @@
     </top-bar>
 
     <div class="body" :focusable="false">
-      <div class="hero-row" :focusable="false">
-        <hero-card @cast="$emit('cast')" />
-        <device-panel :device-name="deviceName" :ready="stateReady" />
-      </div>
+      <hero-card @cast="$emit('cast')" @guide="$emit('guide')" />
 
       <div class="section" :focusable="false">
         <div class="sec-head" :focusable="false">
@@ -53,120 +48,145 @@
             :key="app.name"
             :app="app"
             variant="recent"
-            :mr="25"
+            :mr="20"
             :mb="0"
             @open="$emit('open', $event)"
           />
         </div>
+      </div>
+
+      <div class="hint" :focusable="false">
+        <span class="hint-text" :focusable="false">键盘：方向键移动 · Enter 打开 · Esc 返回上一层</span>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 import TopBar from './TopBar.vue'
 import HeroCard from './HeroCard.vue'
-import DevicePanel from './DevicePanel.vue'
 import AppTile from './AppTile.vue'
 import { INSTALLED_APPS } from './appCatalog'
-import { ICON_BASE } from '../../styles/tokens'
+
+/** 按时段给问候语（设计稿为「下午好，开始投屏吧」） */
+function greetingByHour(hour: number): string {
+  if (hour >= 5 && hour < 11) return '早上好，开始投屏吧'
+  if (hour >= 11 && hour < 13) return '中午好，开始投屏吧'
+  if (hour >= 13 && hour < 18) return '下午好，开始投屏吧'
+  return '晚上好，开始投屏吧'
+}
 
 export default defineComponent({
   name: 'HomeView',
-  components: { TopBar, HeroCard, DevicePanel, AppTile },
+  components: { TopBar, HeroCard, AppTile },
   props: {
-    deviceName: { type: String, default: '投屏显象' },
+    deviceName: { type: String, default: 'PC投屏 · 我的电脑' },
     clock: { type: String, default: '--:--' },
     date: { type: String, default: '' },
     /** DLNA 投屏就绪状态（真实状态，非静态文案） */
     stateReady: { type: Boolean, default: false },
-    stateText: { type: String, default: '投屏就绪' },
-    /** 网络状态：拿不到 SSID / 频段，只报连接状态 */
-    netText: { type: String, default: '已连接' },
+    stateText: { type: String, default: 'DLNA 已就绪' },
   },
-  emits: ['cast', 'open', 'nav'],
+  emits: ['cast', 'guide', 'open', 'nav'],
   setup() {
-    const wifiFailed = ref(false)
     return {
-      wifiFailed,
+      greeting: greetingByHour(new Date().getHours()),
       installed: INSTALLED_APPS,
-      icons: { wifi: `${ICON_BASE}/wifi-icon.svg` },
     }
   },
 })
 </script>
 
 <style scoped>
+/* 样式全部落在 QuickTVUI / Hippy 支持的 CSS 子集内：
+   无 CSS 变量 / gap / grid / % / auto / radial-gradient / transition；
+   padding·margin 不用多值简写（末值非 0 会丢值） */
+
 .home {
   position: absolute;
-  left: 132px;
+  left: 152px;
   top: 0;
-  width: 1788px;
+  width: 1768px;
   height: 1080px;
+  padding-top: 34px;
+  padding-left: 56px;
+  padding-right: 56px;
   display: flex;
   flex-direction: column;
 }
 
-.device-name { font-size: 27px; font-weight: 600; color: #e8edf5; }
+.greet-wrap {
+  display: flex;
+  flex-direction: column;
+}
 
-.pill {
-  height: 52px;
-  margin-left: 12px;
-  padding-left: 23px;
-  padding-right: 23px;
-  border-radius: 999px;
-  background-color: rgba(19, 23, 48, 0.88);
-  border-width: 1px;
-  border-color: #1c2440;
+.greeting { font-size: 34px; font-weight: 700; color: #2E241B; }
+
+.pills {
+  margin-top: 8px;
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
-.pill-ico { width: 20px; height: 20px; margin-right: 11px; }
-
-.pill-dot {
-  width: 11px;
-  height: 11px;
-  border-radius: 999px;
-  margin-right: 11px;
+.pill {
+  height: 44px;
+  padding-left: 18px;
+  padding-right: 18px;
+  border-radius: 22px;
+  background-color: #FFFFFF;
+  border-width: 1px;
+  border-color: #F4E3D0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
-.pill-text { font-size: 21px; color: #8194a4; }
+.pill-warm {
+  margin-left: 10px;
+  background-color: #FFF1E2;
+  border-color: #FFF1E2;
+}
 
-.clock { font-size: 48px; font-weight: 600; color: #e8edf5; }
-.date { margin-left: 26px; font-size: 21px; color: #8194a4; }
+.pill-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  margin-right: 8px;
+}
+
+.pill-dot-warm { background-color: #FF7A2F; }
+
+.pill-text { font-size: 20px; font-weight: 500; color: #5E4C3C; }
+.pill-warm-text { font-size: 20px; font-weight: 500; color: #E9661E; }
+
+.clock { font-size: 56px; font-weight: 700; color: #2E241B; }
+.date { margin-left: 22px; font-size: 21px; color: #8A7A6B; }
 
 .body {
-  width: 1788px;
-  padding-left: 64px;
-  padding-right: 64px;
-  padding-top: 32px;
+  width: 1656px;
+  margin-top: 26px;
   display: flex;
   flex-direction: column;
 }
 
-.hero-row {
-  width: 1660px;
-  display: flex;
-  flex-direction: row;
-}
-
 .section {
-  width: 1660px;
-  margin-top: 36px;
+  width: 1656px;
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
 }
 
 .sec-head {
-  height: 48px;
+  height: 44px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
 }
 
-.sec-title { font-size: 34px; font-weight: 600; color: #e8edf5; }
+.sec-title { font-size: 34px; font-weight: 700; color: #2E241B; }
 
 .sec-link {
   height: 40px;
@@ -176,23 +196,32 @@ export default defineComponent({
   display: flex;
   flex-direction: row;
   align-items: center;
-  focus-scale: 1.05;
+  focus-scale: 1.04;
   focus-border-width: 1px;
-  focus-border-color: rgba(232, 237, 245, 0.34);
-  focus-background-color: rgba(232, 237, 245, 0.06);
+  focus-border-color: #FFC08A;
+  focus-background-color: #FFF7EC;
 }
 
-.sec-link-text { font-size: 23px; font-weight: 500; color: #8194a4; }
-.sec-link-arrow { margin-left: 10px; font-size: 26px; color: #8194a4; }
+.sec-link-text { font-size: 22px; font-weight: 500; color: #8A7A6B; }
+.sec-link-arrow { margin-left: 6px; font-size: 20px; color: #8A7A6B; }
 
-/* 1685 = 8×(185 磁贴 + 25 列距)：flex-wrap 会把末位磁贴的右间距也算进换行判断，
-   所以容器要比内容净宽 1660 多出「一个列距」，否则第 8 个磁贴会被挤到第二行。
-   多出的 25px 落在 body 的 padding-right 空白区，视觉上无影响。 */
+/* 1560 = 7×200 + 7×20：flex-wrap 会把末位磁贴的右间距也算进换行判断，
+   容器取「含末位列距」的总宽，一行正好 7 个。 */
 .tiles {
-  width: 1685px;
-  margin-top: 24px;
+  width: 1560px;
+  margin-top: 18px;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
 }
+
+.hint {
+  height: 40px;
+  margin-top: 26px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.hint-text { font-size: 20px; color: #A08B78; }
 </style>

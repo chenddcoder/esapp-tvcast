@@ -1,11 +1,16 @@
 <template>
-  <!-- 页面壳：左侧导航轨 + 内容区（首页 / 全部应用 / 游戏中心，视图切换不走路由）+ 底部提示条。
+  <!-- 页面壳：左侧导航轨 + 内容区（首页 / 全部应用 / 游戏中心，视图切换不走路由）。
        为什么用 v-if 视图切换而不是新增路由页：es3-router 3.x 在 web-renderer 下
        push 后 RouterView 不切换（页面实例机制未在 web 端实现，见 casting 页注释），
        真机/桌面双端一致的成本最低；同时导航切换零页面开销。
-       投屏页仍走既有路由/覆盖层方案（P3 重做），设置页保持独立路由页。 -->
+       投屏页仍走既有路由/覆盖层方案，设置页保持独立路由页（返回时带 view 参数）。 -->
   <div class="launcher-root" :focusable="false">
-    <nav-rail :active="view" :status="railStatus" @nav="onNav" />
+    <nav-rail
+      :active="view"
+      :status="dlnaReady ? '等待投屏' : '启动中'"
+      :ready="dlnaReady"
+      @nav="onNav"
+    />
 
     <home-view
       v-if="view === 'home'"
@@ -13,22 +18,15 @@
       :clock="clock"
       :date="date"
       :state-ready="dlnaReady"
-      :state-text="dlnaReady ? '投屏就绪' : '正在启动'"
-      net-text="已连接"
+      :state-text="dlnaReady ? 'DLNA 已就绪' : '正在启动'"
       @cast="onCast"
+      @guide="onGuide"
       @open="onOpenApp"
       @nav="onNav"
     />
     <apps-view v-else-if="view === 'apps'" @open="onOpenApp" @search="onSearch" />
     <!-- 游戏中心：挂载即按缓存/过期策略取游戏库（见 GamesView + gamesApi） -->
     <games-view v-else @open="onOpenGame" />
-
-    <!-- 提示条必须自己绝对定位：.launcher-root 是 column flex，而 rail / view / toast
-         全走 position:absolute 脱离了文档流，剩下的 static 子元素会被排到容器 y=0
-         （实测：未定位时提示条顶在页面最上方，压住 TopBar 的设备名与时钟）。 -->
-    <div class="hint-wrap" :focusable="false">
-      <hint-bar :hints="hints" :brandline="brandline" />
-    </div>
 
     <div class="toast-wrap" :focusable="false">
       <div class="toast" v-if="toast" :focusable="false">
@@ -40,49 +38,45 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { useESRouter, useESNativeRouter } from '@extscreen/es3-router'
+import { useESRouter, useESNativeRouter, useESRoute } from '@extscreen/es3-router'
 import { Native } from '@extscreen/es3-vue'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import NavRail from './NavRail.vue'
 import HomeView from './HomeView.vue'
 import AppsView from './AppsView.vue'
 import GamesView from './GamesView.vue'
-import HintBar from './HintBar.vue'
 import { readGameToken, type GameItem } from './gamesApi'
+import { loadCatalog, catalogState } from './appCatalog'
 import type { AppItem } from './appTypes'
 
 type ViewKey = 'home' | 'apps' | 'games'
 
+/** 设置页经路由参数回传要展示的视图（导航轨「首页/应用/游戏」） */
+function initialView(): ViewKey {
+  try {
+    const route = useESRoute() as unknown as { params?: Record<string, unknown> }
+    const v = String(route?.params?.view || '')
+    if (v === 'apps' || v === 'games' || v === 'home') return v as ViewKey
+  } catch (e) {
+    // web/桌面环境拿不到路由参数时回首页
+  }
+  return 'home'
+}
+
 export default defineComponent({
   name: 'LauncherPage',
-  components: { NavRail, HomeView, AppsView, GamesView, HintBar },
+  components: { NavRail, HomeView, AppsView, GamesView },
   setup() {
     const router = useESRouter()
     const nativeRouter = useESNativeRouter()
-    const view = ref<ViewKey>('home')
-    const deviceName = ref('投屏显象')
+    const view = ref<ViewKey>(initialView())
+    const deviceName = ref('PC投屏 · 我的电脑')
     const clock = ref('--:--')
     const date = ref('')
     const dlnaReady = ref(false)
     const toast = ref('')
     let toastTimer: any = -1
     let clockTimer: any = -1
-
-    const railStatus = computed(() => (dlnaReady.value ? '待投屏' : '启动中'))
-
-    /** 两屏按键一致（应用少时 02 屏没有搜索，所以不必按 view 分支） */
-    const hints = [
-      { kbd: '↑ ↓ ← →', label: '移动焦点' },
-      { kbd: '确定', label: '打开' },
-      { kbd: '返回', label: '上一层' },
-    ]
-
-    const BRANDS: Record<ViewKey, string> = {
-      home: '客厅投屏中心 · HOME',
-      apps: '客厅投屏中心 · APPS',
-      games: '客厅投屏中心 · GAMES',
-    }
-    const brandline = computed(() => BRANDS[view.value] || BRANDS.home)
 
     const showToast = (msg: string) => {
       toast.value = msg
@@ -111,6 +105,9 @@ export default defineComponent({
 
     /** 投屏入口：真正的内容由手机端推送（DMR 接收端无法自选内容） */
     const onCast = () => showToast('请从手机相册或视频应用推送到本设备')
+
+    /** 「怎么用」→ 连接帮助浮层（同一套浅色主题） */
+    const onGuide = () => router.push({ name: 'guide' })
 
     /** 应用磁贴点击：本机个人快应用按包名拉起（EsNativeModule.launchEsPage → es_pkg 解析加载） */
     const onOpenApp = (app: AppItem) => {
@@ -158,6 +155,9 @@ export default defineComponent({
       tickClock()
       clockTimer = setInterval(tickClock, 1000 * 30)
       loadDeviceState()
+      // 应用目录来自线上 catalog 接口：发过版的快应用自动出现在启动器里。
+      // 失败不抛（保留兜底两款），只在 catalogState 里标 fallback。
+      loadCatalog()
     })
     onUnmounted(() => {
       clearInterval(clockTimer)
@@ -165,9 +165,8 @@ export default defineComponent({
     })
 
     return {
-      view, deviceName, clock, date, dlnaReady, toast,
-      railStatus, hints, brandline,
-      onNav, onCast, onOpenApp, onOpenGame, onSearch,
+      view, deviceName, clock, date, dlnaReady, toast, catalogState,
+      onNav, onCast, onGuide, onOpenApp, onOpenGame, onSearch,
     }
   },
 })
@@ -184,24 +183,16 @@ export default defineComponent({
   top: 0;
   width: 1920px;
   height: 1080px;
-  background-color: #0b101e;
+  background-color: #FFF8EE;
   overflow: hidden;
 }
 
-/* 底部提示条容器：设计稿 y=1008，高 72（1080 底边贴齐） */
-.hint-wrap {
-  position: absolute;
-  left: 132px;
-  top: 1008px;
-  width: 1788px;
-  height: 72px;
-}
-
+/* 提示 toast：底部居中（提示条已并入首页内容区，不再绝对定位占位） */
 .toast-wrap {
   position: absolute;
-  left: 132px;
-  top: 872px;
-  width: 1788px;
+  left: 152px;
+  top: 952px;
+  width: 1768px;
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -213,10 +204,11 @@ export default defineComponent({
   padding-top: 16px;
   padding-bottom: 16px;
   border-radius: 18px;
-  background-color: rgba(19, 23, 48, 0.94);
+  background-color: #FFFFFF;
   border-width: 1px;
-  border-color: rgba(251, 97, 90, 0.42);
+  border-color: #F4E3D0;
+  box-shadow: 0 12px 30px rgba(90, 60, 30, 0.12);
 }
 
-.toast-text { font-size: 24px; color: #e8edf5; }
+.toast-text { font-size: 24px; color: #2E241B; }
 </style>

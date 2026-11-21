@@ -271,3 +271,14 @@ PASS  ④ 点游戏磁贴 → es_pkg 拉起 cn.chenddcoder.hongjian（且 token 
 
 ### 8.8 收窄顶部 scrim + 移除投屏信息卡（2026-09-13）
 陈兄两处简化：① scrim-top 300→160（单行导播簇 44~116 恰好被覆盖，画面露出更多）；② 右栏「投屏信息」卡整体移除（标题/来源/分辨率/时长在左上单行与右上胶囊里都有，电视上信息重复且挡画面），模板+CSS+验收 ⑥ 一并清理。11/11 通过。
+
+### 8.9 修复：进度条左端不是圆角（2026-09-13，clipChildren）
+
+陈兄报「进度条左边不是圆角」，提示「使用 clipChildren=false 试试」。诊断链（探针 probe10-13 + lime 描边实验）：
+
+1. **fill 自身的 border-radius:6px 一直是生效的**（999px 实验里描边左端呈垂直直线 = 被「切断」而非「没画」）。
+2. 根因：seekbar 聚焦时 root 被 FocusStyler 加 `transform: scale(1.05)`，473px 宽外溢约 ±12px；祖先 `.seekbar-wrap` 按 Hippy 视图默认 `overflow: hidden`（模拟原生 clipChildren=true）在 root 左缘裁剪 → **左半圆整块落在裁剪线外被切平**，右端在界内所以是圆的。改 root 自身 overflow 无效（裁剪发生在祖先层）——这是铁律 7。
+3. 修复（一行）：casting 模板 `.seekbar-wrap` 加 `:clipChildren="false"`（web-renderer QtView 已支持，false→overflow:visible）。原生端语义一致，无兼容问题。
+4. 连带暴露并源头清除：web-runtime `index.html` 与 web-cli `templates/dev-renderer.html`（39001 staging 宿主页，两份）里 `[focusable].focused` 的绿色辉光（`box-shadow: 0 0 20px rgba(76,175,80,.5)`，浏览器预览时代遗留、原生 TV 无）——以前一直被 wrap 裁剪遮住，放开后晕成一大块暗框。业务 CSS 屏蔽不可行：**es-vue3 CSS 构建期内联抽取、运行时无按 class 的样式表**（scoped 的 data-v 也打不中 JS 创建的组件 dom），只能宿主页源头改。web-cli 模板启动时缓存，改后须重启 39001。
+
+发版：tvcast v1.0.60（加密发版校验通过）、线上 web-runtime index.html（旧已备份）、desktop-runtime v0.1.2（universal 重嵌新 dist）。verify-casting-ui.cjs 11/11。

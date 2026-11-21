@@ -43,15 +43,57 @@ export const DLNA_REMOTE_EVENT = {
 export const DLNA_ACTION_EVENT = 'ACTION_DLNA' // 投屏请求
 export const DLNA_STATUS_EVENT = 'ACTION_DLNA_STATUS' // 播放控制
 
+/** 被投媒体类型（Rust 侧按 CurrentURI + DIDL-Lite 判定，见 dlna/media_kind.rs） */
+export type DlnaMediaType = 'video' | 'audio' | 'image' | 'unknown'
+
 export interface DlnaPlayPayload {
-  /** 被投视频/音频 URL */
+  /** 被投视频/音频/图片 URL */
   url?: string
   /** 可选标题 */
   title?: string
+  /**
+   * 媒体类型。'image' 时必须走图片层渲染——<video> 加载 JPEG 必然 error，
+   * 业务层兜底 stop 会让手机端显示「投屏失败」（2026-09-13 华为图库实测）。
+   * 缺省/空串时由 detectMediaTypeFromUrl 按扩展名兜底。
+   */
+  mediaType?: DlnaMediaType | string
 }
 
 /** 模块级待播参数（替代 window.__tvcastPendingPlay 兜底，route.params 未携带时读取） */
 let pendingPlay: DlnaPlayPayload | null = null
+
+/**
+ * 按 URL 扩展名兜底判定媒体类型（Rust 侧 mediaType 缺失时用）。
+ * Rust 侧判定优先（能读到 DIDL-Lite 的 upnp:class / protocolInfo），
+ * 这里只覆盖「老版本 desktop-runtime 不带 mediaType」与「URL 无扩展名」两种情况。
+ * 规则与 Rust 侧 media_kind.rs 的扩展名表保持一致，改一处要同步改另一处。
+ */
+export function detectMediaTypeFromUrl(url: string): DlnaMediaType {
+  const path = String(url || '').split(/[?#]/)[0]
+  const name = path.split('/').pop() || ''
+  const dot = name.lastIndexOf('.')
+  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase() : ''
+  if (!ext || ext.length > 5) return 'unknown'
+  if (['jpg', 'jpeg', 'jpe', 'jfif', 'png', 'bmp', 'gif', 'webp', 'heic', 'heif', 'tif', 'tiff', 'avif'].indexOf(ext) >= 0) {
+    return 'image'
+  }
+  if (['mp3', 'aac', 'm4a', 'flac', 'wav', 'ogg', 'oga', 'wma', 'ape', 'opus'].indexOf(ext) >= 0) {
+    return 'audio'
+  }
+  if (
+    ['mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'ts', 'm2ts', 'mpg', 'mpeg', 'flv', 'wmv', '3gp', 'rmvb', 'm3u8', 'mpd'].indexOf(ext) >= 0
+  ) {
+    return 'video'
+  }
+  return 'unknown'
+}
+
+/** 归一化媒体类型：Rust 侧的合法值直接用，否则按 URL 扩展名兜底。 */
+export function resolveMediaType(payload?: DlnaPlayPayload | null): DlnaMediaType {
+  const raw = String(payload?.mediaType || '').toLowerCase()
+  if (raw === 'image' || raw === 'audio' || raw === 'video') return raw
+  return detectMediaTypeFromUrl(String(payload?.url || ''))
+}
 
 /**
  * 声明 DLNA 就绪/广播契约（对齐 esapp-xiaoyoucast + Android 真机）：
@@ -122,10 +164,15 @@ export interface DlnaActionHandlers {
 
 export function initDlnaActionListener(handlers: DlnaActionHandlers): () => void {
   const cb = (event: unknown) => {
-    const data = parsePayload<{ actionType?: string; url?: string; title?: string }>(event)
+    const data = parsePayload<{
+      actionType?: string
+      url?: string
+      title?: string
+      mediaType?: string
+    }>(event)
     if (!data) return
     if (data.actionType === 'playerUrl') {
-      handlers.onPlayerUrl?.({ url: data.url, title: data.title })
+      handlers.onPlayerUrl?.({ url: data.url, title: data.title, mediaType: data.mediaType })
     }
   }
   // EventBus（与真机原生广播同一契约：es3-vue 3.x EventDispatcher 收到

@@ -1,0 +1,31 @@
+{
+  "//": "闭环：从投屏显象 launcher 点开卡带机（nativeRouter.push → es_pkg 重载 → 拉生产包）。",
+  "ready": "客厅投屏中心",
+  "steps": [
+    {
+      "name": "首页磁贴就位",
+      "expect": ["卡带机"],
+      "shot": "J01-launcher"
+    },
+    {
+      "name": "点开卡带机磁贴（走 @click → nativeRouter.push → es_pkg 重载）",
+      "//": "不靠方向键：首页是原生焦点链，初始焦点在导航轨，按键数不定、易假红。",
+      "//2": "这里直接派发 click 到磁贴 DOM，走的是同一条业务 handler。",
+      "eval": "const card = document.querySelector('[name=\\\"tile-卡带机\\\"]'); if (!card) { const names = Array.from(document.querySelectorAll('[name^=\\\"tile-\\\"]')).map((n) => n.getAttribute('name')); throw new Error('没找到卡带机磁贴，现有: ' + names.join(',') ); } card.dispatchEvent(new MouseEvent('click', { bubbles: true })); return 'clicked ' + card.getAttribute('name');",
+      "waitText": "NES EMULATOR",
+      "timeout": 30000,
+      "expect": ["NES EMULATOR · TV", "卡带机"],
+      "shot": "J02-nes"
+    },
+    {
+      "name": "跨应用后投屏服务也能起（新包的桌面分支）",
+      "waitText": "phase=ready",
+      "timeout": 20000,
+      "expect": ["/NES\\|phase=ready/"]
+    }
+  ],
+  "final": {
+    "checkOverflow": true,
+    "noScriptError": true
+  }
+}

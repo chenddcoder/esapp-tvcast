@@ -1,0 +1,22 @@
+{
+  "//": "投屏显象作为 launcher 的验收：应用目录必须来自线上 catalog 接口（发过版的快应用自动出现）。",
+  "ready": "客厅投屏中心",
+  "steps": [
+    {
+      "name": "首页应用磁贴来自接口（卡带机 = 刚发的 es.com.nes.tv）",
+      "expect": ["卡带机", "游戏中心", "天气"],
+      "shot": "L01-home"
+    },
+    {
+      "name": "全部应用页（分类 chips + 网格同一份数据）",
+      "keys": ["down", "down"],
+      "wait": 800,
+      "expect": ["卡带机"],
+      "shot": "L02-apps"
+    }
+  ],
+  "final": {
+    "checkOverflow": true,
+    "noScriptError": true
+  }
+}

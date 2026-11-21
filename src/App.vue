@@ -39,10 +39,13 @@ export default defineComponent({
     const onPlayerUrl = (payload: DlnaPlayPayload) => {
       const url = payload?.url
       if (!url) return
-      console.log('[App] 收到投屏请求 → push casting 播放页', { url, title: payload.title })
+      // mediaType 透传（'image' 时 casting 页走图片层）——Rust 侧按 DIDL 判定，
+      // 缺省为空串，由 casting 页按 URL 扩展名兜底。
+      const mediaType = String(payload?.mediaType || '')
+      console.log('[App] 收到投屏请求 → push casting 播放页', { url, title: payload.title, mediaType })
       // 模块级待播参数兜底（casting 组件 route.params 未携带时读取）
-      setPendingPlay({ url, title: payload.title || '' })
-      pushRoute({ name: 'casting', params: { url, title: payload.title || '' } })
+      setPendingPlay({ url, title: payload.title || '', mediaType })
+      pushRoute({ name: 'casting', params: { url, title: payload.title || '', mediaType } })
     }
 
     /**

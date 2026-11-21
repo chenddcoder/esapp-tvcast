@@ -42,3 +42,5 @@ GEMINI.md
 docs/superpowers
 openspec
 .reasonix
+_tmp_*
+.workbuddy*
