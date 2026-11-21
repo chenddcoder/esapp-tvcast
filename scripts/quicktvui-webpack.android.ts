@@ -1,3 +1,8 @@
+// webpack-cli 用 ts-node 加载本文件；工程没装 @types/node（依赖统一走 tv-deps），
+// 不声明的话会报 TS2580 Cannot find name 'require'/'module'，构建直接失败。
+declare const require: any
+declare const module: any
+
 const path = require('path')
 const fs = require('fs');
 const ESDynamicImportPlugin = require('@extscreen/es3-dynamic-import-plugin')

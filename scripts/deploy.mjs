@@ -77,8 +77,11 @@ console.log(`版本: ${oldVersion} -> ${newVersion}` + (newVersion === oldVersio
 
 // ---------- 构建 ----------
 if (!NO_BUILD) {
-  console.log('构建中 (pnpm build)...')
-  execSync('pnpm build', { cwd: ROOT, stdio: 'inherit' })
+  // 不用 `pnpm build`：pnpm 11 会在跑脚本前做依赖校验（verify-deps-before-run），
+  // 本机 no-verify-deps 环境下会先跑一次 pnpm install 然后 ERR_PNPM_IGNORED_BUILDS 直接失败。
+  // 直接调 tsx 跑构建脚本，退出码能真实反映构建结果。
+  console.log('构建中 (tsx scripts/build.ts)...')
+  execSync('node_modules/.bin/tsx ./scripts/build.ts', { cwd: ROOT, stdio: 'inherit' })
 } else {
   console.log('跳过构建 (--no-build)')
 }

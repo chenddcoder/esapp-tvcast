@@ -1,7 +1,7 @@
 {
   "name": "cn.chenddcoder.tvcast",
   "appName": "tvcast",
-  "version": "1.0.62",
+  "version": "1.0.64",
   "main": "./src/main.ts",
   "private": true,
   "scripts": {
